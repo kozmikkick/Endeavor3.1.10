@@ -28,6 +28,9 @@
 #include <linux/workqueue.h>
 #include <linux/gpio.h>
 #include <linux/wakelock.h>
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_SWEEP2WAKE
+#include <linux/synaptics_i2c_rmi.h>
+#endif
 
 #include <asm/gpio.h>
 #include <linux/cm3629.h>
@@ -623,6 +626,12 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 	delay_wq = create_singlethread_workqueue("gpio_key_work");
 	INIT_DELAYED_WORK(&delay_work, Mistouch_powerkey_func);
 	wake_lock_init(&key_reset_clr_wake_lock, WAKE_LOCK_SUSPEND, "gpio_input_pwr_clear");
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_SWEEP2WAKE
+	if (!strcmp(input->name, "gpio-keys")) {
+		sweep2wake_setdev(input);
+		printk(KERN_INFO "[sweep2wake]: set device %s\n", input->name);
+	}
+#endif
 
 	/* Enable auto repeat feature of Linux input subsystem */
 	if (pdata->rep)
