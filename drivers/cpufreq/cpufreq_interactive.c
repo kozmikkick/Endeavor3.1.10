@@ -2,6 +2,7 @@
  * drivers/cpufreq/cpufreq_interactive.c
  *
  * Copyright (C) 2010 Google, Inc.
+ * Copyright (c) 2012, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -28,9 +29,6 @@
 #include <linux/mutex.h>
 
 #include <asm/cputime.h>
-#include <linux/input.h>
-#include <linux/workqueue.h>
-#include <linux/slab.h>
 
 static atomic_t active_count = ATOMIC_INIT(0);
 
@@ -45,7 +43,6 @@ struct cpufreq_interactive_cpuinfo {
 	u64 freq_change_time;
 	u64 freq_change_time_in_idle;
 	u64 freq_change_time_in_iowait;
-	u64 last_high_freq_time;
 	struct cpufreq_policy *policy;
 	struct cpufreq_frequency_table *freq_table;
 	unsigned int target_freq;
@@ -86,7 +83,7 @@ static unsigned long sustain_load;
 /*
  * The minimum amount of time to spend at a frequency before we can ramp down.
  */
-#define DEFAULT_MIN_SAMPLE_TIME 80000;
+#define DEFAULT_MIN_SAMPLE_TIME 30000;
 static unsigned long min_sample_time;
 
 /*
@@ -94,24 +91,6 @@ static unsigned long min_sample_time;
  */
 #define DEFAULT_TIMER_RATE 20000;
 static unsigned long timer_rate;
-
-/*
- * The minimum delay before frequency is allowed to raise over normal rate.
- * Since it must remain at high frequency for a minimum of MIN_SAMPLE_TIME
- * once it rises, setting this delay to a multiple of MIN_SAMPLE_TIME
- * becomes the best way to enforce a square wave.
- * e.g. 5*MIN_SAMPLE_TIME = 20% high freq duty cycle
- */
-#define DEFAULT_HIGH_FREQ_MIN_DELAY 5*DEFAULT_MIN_SAMPLE_TIME
-static unsigned long high_freq_min_delay;
-
-/*
- * The maximum frequency CPUs are allowed to run normally
- * 0 if disabled
- */
-#define DEFAULT_MAX_NORMAL_FREQ 0
-static unsigned long max_normal_freq;
-
 
 /* Defines to control mid-range frequencies */
 #define DEFAULT_MID_RANGE_GO_MAXSPEED_LOAD 95
@@ -133,109 +112,12 @@ struct cpufreq_governor cpufreq_gov_interactive = {
 	.owner = THIS_MODULE,
 };
 
-static void dbs_refresh_callback(struct work_struct *unused)
-{
-	struct cpufreq_policy *policy;
-	struct cpufreq_interactive_cpuinfo *this_dbs_info;
-
-	if (lock_policy_rwsem_write(0) < 0)
-		return;
-
-	this_dbs_info = &per_cpu(cpuinfo, 0);
-	policy = this_dbs_info->policy;
-
-	if (policy && policy->cur < policy->max) {
-		__cpufreq_driver_target(policy, policy->max,
-				CPUFREQ_RELATION_L);
-		/*
-		this_dbs_info->prev_cpu_idle = get_cpu_idle_time(0,
-				&this_dbs_info->prev_cpu_wall);
-		*/
-	}
-	unlock_policy_rwsem_write(0);
-}
-
-static DECLARE_WORK(dbs_refresh_work, dbs_refresh_callback);
-
-static void dbs_input_event(struct input_handle *handle, unsigned int type,
-					unsigned int code, int value)
-{
-	schedule_work(&dbs_refresh_work);
-}
-
-static int input_dev_filter(const char* input_dev_name)
-{
-	int ret = 0;
-	if (strstr(input_dev_name, "touchscreen") ||
-		strstr(input_dev_name, "-keypad") ||
-		strstr(input_dev_name, "-nav") ||
-		strstr(input_dev_name, "-oj")) {
-	}
-	else {
-		ret = 1;
-	}
-	return ret;
-}
-
-static int dbs_input_connect(struct input_handler *handler,
-		struct input_dev *dev, const struct input_device_id *id)
-{
-	struct input_handle *handle;
-	int error;
-
-	/* filter out those input_dev that we don't care */
-	if (input_dev_filter(dev->name))
-		return 0;
-
-	handle = kzalloc(sizeof(struct input_handle), GFP_KERNEL);
-	if (!handle)
-		return -ENOMEM;
-
-	handle->dev = dev;
-	handle->handler = handler;
-	handle->name = "cpufreq";
-
-	error = input_register_handle(handle);
-	if (error)
-		goto err2;
-
-	error = input_open_device(handle);
-	if (error)
-		goto err1;
-
-	return 0;
-err1:
-	input_unregister_handle(handle);
-err2:
-	kfree(handle);
-	return error;
-}
-
-static void dbs_input_disconnect(struct input_handle *handle)
-{
-	input_close_device(handle);
-	input_unregister_handle(handle);
-	kfree(handle);
-}
-
-static const struct input_device_id dbs_ids[] = {
-	{ .driver_info = 1 },
-	{ },
-};
-static struct input_handler dbs_input_handler = {
-	.event          = dbs_input_event,
-	.connect        = dbs_input_connect,
-	.disconnect     = dbs_input_disconnect,
-	.name           = "cpufreq_ond",
-	.id_table       = dbs_ids,
-};
-
-
-
 static unsigned int cpufreq_interactive_get_target(
 	int cpu_load, int load_since_change, struct cpufreq_policy *policy)
 {
 	unsigned int target_freq;
+	unsigned int maxspeed_load = go_maxspeed_load;
+	unsigned int mboost = max_boost;
 
 	/*
 	 * Choose greater of short-term load (since last idle timer
@@ -245,14 +127,19 @@ static unsigned int cpufreq_interactive_get_target(
 	if (load_since_change > cpu_load)
 		cpu_load = load_since_change;
 
-	if (cpu_load >= go_maxspeed_load) {
+	if (midrange_freq && policy->cur > midrange_freq) {
+		maxspeed_load = midrange_go_maxspeed_load;
+		mboost = midrange_max_boost;
+	}
+
+	if (cpu_load >= maxspeed_load) {
 		if (!boost_factor)
 			return policy->max;
 
 		target_freq = policy->cur * boost_factor;
 
-		if (max_boost && target_freq > policy->cur + max_boost)
-			target_freq = policy->cur + max_boost;
+		if (mboost && target_freq > policy->cur + mboost)
+			target_freq = policy->cur + mboost;
 	}
 	else {
 		if (!sustain_load)
@@ -385,20 +272,6 @@ static void cpufreq_interactive_timer(unsigned long data)
 		if (cputime64_sub(pcpu->timer_run_time, pcpu->freq_change_time)
 		    < min_sample_time)
 			goto rearm;
-	}
-
-	/*
-	 * Can only overclock if the delay is satisfy. Otherwise, cap it to
-	 * maximum allowed normal frequency
-	 */
-	if (max_normal_freq && (new_freq > max_normal_freq)) {
-		if (cputime64_sub(pcpu->timer_run_time, pcpu->last_high_freq_time)
-				< high_freq_min_delay) {
-			new_freq = max_normal_freq;
-		}
-		else {
-			pcpu->last_high_freq_time = pcpu->timer_run_time;
-		}
 	}
 
 	if (new_freq < pcpu->target_freq) {
@@ -647,54 +520,232 @@ static void cpufreq_interactive_freq_down(struct work_struct *work)
 	}
 }
 
-#define DECL_CPUFREQ_INTERACTIVE_ATTR(name) \
-static ssize_t show_##name(struct kobject *kobj, \
-	struct attribute *attr, char *buf) \
-{ \
-	return sprintf(buf, "%lu\n", name); \
-} \
-\
-static ssize_t store_##name(struct kobject *kobj,\
-		struct attribute *attr, const char *buf, size_t count) \
-{ \
-	int ret; \
-	unsigned long val; \
-\
-	ret = strict_strtoul(buf, 0, &val); \
-	if (ret < 0) \
-		return ret; \
-	name = val; \
-	return count; \
-} \
-\
-static struct global_attr name##_attr = __ATTR(name, 0644, \
-		show_##name, store_##name);
+static ssize_t show_go_maxspeed_load(struct kobject *kobj,
+				     struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", go_maxspeed_load);
+}
 
-DECL_CPUFREQ_INTERACTIVE_ATTR(go_maxspeed_load)
-DECL_CPUFREQ_INTERACTIVE_ATTR(midrange_freq)
-DECL_CPUFREQ_INTERACTIVE_ATTR(midrange_go_maxspeed_load)
-DECL_CPUFREQ_INTERACTIVE_ATTR(boost_factor)
-DECL_CPUFREQ_INTERACTIVE_ATTR(io_is_busy)
-DECL_CPUFREQ_INTERACTIVE_ATTR(max_boost)
-DECL_CPUFREQ_INTERACTIVE_ATTR(midrange_max_boost)
-DECL_CPUFREQ_INTERACTIVE_ATTR(sustain_load)
-DECL_CPUFREQ_INTERACTIVE_ATTR(min_sample_time)
-DECL_CPUFREQ_INTERACTIVE_ATTR(timer_rate)
-DECL_CPUFREQ_INTERACTIVE_ATTR(high_freq_min_delay)
-DECL_CPUFREQ_INTERACTIVE_ATTR(max_normal_freq)
+static ssize_t store_go_maxspeed_load(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
 
-#undef DECL_CPUFREQ_INTERACTIVE_ATTR
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	go_maxspeed_load = val;
+	return count;
+}
+
+static struct global_attr go_maxspeed_load_attr = __ATTR(go_maxspeed_load, 0644,
+		show_go_maxspeed_load, store_go_maxspeed_load);
+
+static ssize_t show_midrange_freq(struct kobject *kobj,
+				     struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", midrange_freq);
+}
+
+static ssize_t store_midrange_freq(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	midrange_freq = val;
+	return count;
+}
+
+static struct global_attr midrange_freq_attr = __ATTR(midrange_freq, 0644,
+		show_midrange_freq, store_midrange_freq);
+
+static ssize_t show_midrange_go_maxspeed_load(struct kobject *kobj,
+				     struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", midrange_go_maxspeed_load);
+}
+
+static ssize_t store_midrange_go_maxspeed_load(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	midrange_go_maxspeed_load = val;
+	return count;
+}
+
+static struct global_attr midrange_go_maxspeed_load_attr = __ATTR(midrange_go_maxspeed_load, 0644,
+		show_midrange_go_maxspeed_load, store_midrange_go_maxspeed_load);
+
+static ssize_t show_boost_factor(struct kobject *kobj,
+				     struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", boost_factor);
+}
+
+static ssize_t store_boost_factor(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	boost_factor = val;
+	return count;
+}
+
+static struct global_attr boost_factor_attr = __ATTR(boost_factor, 0644,
+		show_boost_factor, store_boost_factor);
+
+static ssize_t show_io_is_busy(struct kobject *kobj,
+				     struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", io_is_busy);
+}
+
+static ssize_t store_io_is_busy(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	if (!strict_strtoul(buf, 0, &io_is_busy))
+		return count;
+	return -EINVAL;
+}
+
+static struct global_attr io_is_busy_attr = __ATTR(io_is_busy, 0644,
+		show_io_is_busy, store_io_is_busy);
+
+static ssize_t show_max_boost(struct kobject *kobj,
+				     struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", max_boost);
+}
+
+static ssize_t store_max_boost(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	max_boost = val;
+	return count;
+}
+
+static struct global_attr max_boost_attr = __ATTR(max_boost, 0644,
+		show_max_boost, store_max_boost);
+
+static ssize_t show_midrange_max_boost(struct kobject *kobj,
+				     struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", midrange_max_boost);
+}
+
+static ssize_t store_midrange_max_boost(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	midrange_max_boost = val;
+	return count;
+}
+
+static struct global_attr midrange_max_boost_attr = __ATTR(midrange_max_boost, 0644,
+		show_midrange_max_boost, store_midrange_max_boost);
+
+static ssize_t show_sustain_load(struct kobject *kobj,
+				     struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", sustain_load);
+}
+
+static ssize_t store_sustain_load(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	sustain_load = val;
+	return count;
+}
+
+static struct global_attr sustain_load_attr = __ATTR(sustain_load, 0644,
+		show_sustain_load, store_sustain_load);
+
+static ssize_t show_min_sample_time(struct kobject *kobj,
+				struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", min_sample_time);
+}
+
+static ssize_t store_min_sample_time(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	min_sample_time = val;
+	return count;
+}
+
+static struct global_attr min_sample_time_attr = __ATTR(min_sample_time, 0644,
+		show_min_sample_time, store_min_sample_time);
+
+static ssize_t show_timer_rate(struct kobject *kobj,
+			struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", timer_rate);
+}
+
+static ssize_t store_timer_rate(struct kobject *kobj,
+			struct attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	timer_rate = val;
+	return count;
+}
+
+static struct global_attr timer_rate_attr = __ATTR(timer_rate, 0644,
+		show_timer_rate, store_timer_rate);
 
 static struct attribute *interactive_attributes[] = {
 	&go_maxspeed_load_attr.attr,
+	&midrange_freq_attr.attr,
+	&midrange_go_maxspeed_load_attr.attr,
 	&boost_factor_attr.attr,
 	&max_boost_attr.attr,
+	&midrange_max_boost_attr.attr,
 	&io_is_busy_attr.attr,
 	&sustain_load_attr.attr,
 	&min_sample_time_attr.attr,
 	&timer_rate_attr.attr,
-	&high_freq_min_delay_attr.attr,
-	&max_normal_freq_attr.attr,
 	NULL,
 };
 
@@ -732,8 +783,7 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			pcpu->freq_change_time_in_iowait =
 				get_cpu_iowait_time(j, NULL);
 			pcpu->time_in_iowait = pcpu->freq_change_time_in_iowait;
-			if (!pcpu->last_high_freq_time)
-				pcpu->last_high_freq_time = pcpu->freq_change_time;
+
 			pcpu->timer_idlecancel = 1;
 			pcpu->governor_enabled = 1;
 			smp_wmb();
@@ -754,9 +804,6 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		if (rc)
 			return rc;
 
-		if (!policy->cpu)
-			rc = input_register_handler(&dbs_input_handler);
-
 		break;
 
 	case CPUFREQ_GOV_STOP:
@@ -774,9 +821,6 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			 */
 			pcpu->idle_exit_time = 0;
 		}
-
-		if (!policy->cpu)
-			input_unregister_handler(&dbs_input_handler);
 
 		flush_work(&freq_scale_down_work);
 		if (atomic_dec_return(&active_count) > 0)
@@ -826,10 +870,9 @@ static int __init cpufreq_interactive_init(void)
 	struct sched_param param = { .sched_priority = MAX_RT_PRIO-1 };
 
 	go_maxspeed_load = DEFAULT_GO_MAXSPEED_LOAD;
+	midrange_go_maxspeed_load = DEFAULT_MID_RANGE_GO_MAXSPEED_LOAD;
 	min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 	timer_rate = DEFAULT_TIMER_RATE;
-	high_freq_min_delay = DEFAULT_HIGH_FREQ_MIN_DELAY;
-	max_normal_freq = DEFAULT_MAX_NORMAL_FREQ;
 
 	/* Initalize per-cpu timers */
 	for_each_possible_cpu(i) {
