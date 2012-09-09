@@ -572,6 +572,13 @@ config TEGRA_CBUS_CLOCK_DIVIDER
         int "CBUS clock divider"
         default "2"
 
+config TEGRA_RUNNABLE_THREAD
+	bool "Tegra3 runnable thread hotplug"
+	depends on ARCH_TEGRA_3x_SOC
+	default n
+	help
+	  Tegra3 Runnable Thread calculations for CPU hotplug
+
 config TEGRA_STAT_MON
         bool "Enable H/W statistics monitor"
         depends on ARCH_TEGRA_2x_SOC
