@@ -50,8 +50,10 @@
 #include "dvfs.h"
 #include "pm.h"
 
+#ifdef CONFIG_TEGRA_MPDECISION
 /* mpdecision notifier */
 extern void mpdecision_gmode_notifier(void);
+#endif
 
 extern unsigned int get_powersave_freq();
 /* Symbol to store resume resume */
@@ -570,16 +572,17 @@ int tegra_update_cpu_speed(unsigned long rate)
 
 			/* set rate to max of LP mode */
 			ret = clk_set_rate(cpu_clk, 475000 * 1000);
-
+#ifndef CONFIG_TEGRA_MPDECISION
 			/* change to g mode */
-			//clk_set_parent(cpu_clk, cpu_g_clk);
+			clk_set_parent(cpu_clk, cpu_g_clk);
+#else
                         /*
                          * the above variant is now no longer preferred since
                          * mpdecision would not know about this. Notify mpdecision
                          * instead to switch to G mode
                          */
                         mpdecision_gmode_notifier();
-
+#endif
 			/* restore the target frequency, and
 			 * let the rest of the function handle
 			 * the frequency scale up
