@@ -52,7 +52,7 @@
 
 #ifdef CONFIG_TEGRA_MPDECISION
 /* mpdecision notifier */
-extern void mpdecision_gmode_notifier(void);
+extern int mpdecision_gmode_notifier(void);
 #endif
 
 extern unsigned int get_powersave_freq();
@@ -543,6 +543,7 @@ int tegra_update_cpu_speed(unsigned long rate)
 {
 	int ret = 0;
 	struct cpufreq_freqs freqs;
+    int status = 1;
 
 	unsigned long rate_save = rate;
 	int orig_nice = 0;
@@ -580,7 +581,9 @@ int tegra_update_cpu_speed(unsigned long rate)
                          * mpdecision would not know about this. Notify mpdecision
                          * instead to switch to G mode
                          */
-                        (void) mpdecision_gmode_notifier();
+                        status = mpdecision_gmode_notifier();
+                        if (status == 0)
+                                pr_err("%s: couldn't switch to gmode (freq)", __func__ );
 #endif
 			/* restore the target frequency, and
 			 * let the rest of the function handle
