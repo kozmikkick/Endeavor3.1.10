@@ -391,7 +391,7 @@ static ssize_t store_two_phase_bottom_freq (
 }
 #endif
 
-static unsigned int Touch_poke_attr[4] = {1500000, 880000, 0, 0};
+static unsigned int Touch_poke_attr[4] = {1550000, 880000, 0, 0};
 
 static ssize_t store_touch_poke(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
