@@ -249,7 +249,10 @@ static void edp_update_limit(void)
 
 static unsigned int edp_governor_speed(unsigned int requested_speed)
 {
-	return requested_speed;
+	if ((!edp_limit) || (requested_speed <= edp_limit))
+		return requested_speed;
+	else
+		return edp_limit;
 }
 
 int tegra_edp_update_thermal_zone(int temperature)
