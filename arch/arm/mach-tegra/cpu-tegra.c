@@ -420,7 +420,7 @@ static void tegra_cpu_edp_init(bool resume)
 	tegra_get_cpu_edp_limits(&cpu_edp_limits, &cpu_edp_limits_size);
 
 	if(hboot_temp >= 75){
-		freq = 640000;
+		freq = 600000;
 		printk(KERN_INFO "[TMS] HBootTemp= %lu > 75 , set freq = %d \n", hboot_temp, freq);
 		htc_set_cpu_user_cap(freq);
 	}
@@ -552,7 +552,7 @@ int tegra_update_cpu_speed(unsigned long rate)
 	if (freqs.old == freqs.new)
 		return ret;
 
-	if (freqs.new < rate_save && rate_save >= 880000) {
+	if (freqs.new < rate_save && rate_save >= 800000) {
 		if (is_lp_cluster()) {
 			orig_nice = task_nice(current);
 
@@ -566,7 +566,7 @@ int tegra_update_cpu_speed(unsigned long rate)
 					 " leave LPCPU (%s)", __func__);
 
 			/* set rate to max of LP mode */
-			ret = clk_set_rate(cpu_clk, 475000 * 1000);
+			ret = clk_set_rate(cpu_clk, 400000 * 1000);
 #ifndef CONFIG_TEGRA_MPDECISION
 			/* change to g mode */
 			clk_set_parent(cpu_clk, cpu_g_clk);
