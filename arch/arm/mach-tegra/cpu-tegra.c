@@ -268,14 +268,8 @@ static void edp_update_limit(void)
 #endif
 }
 
-extern unsigned int no_edp_limit;
-
 static unsigned int edp_governor_speed(unsigned int requested_speed)
 {
-    /* ignore EDP (regulator max output) limitation */
-    if (unlikely(no_edp_limit))
-        return requested_speed;
-
 	if ((!edp_limit) || (requested_speed <= edp_limit))
 		return requested_speed;
 	else
