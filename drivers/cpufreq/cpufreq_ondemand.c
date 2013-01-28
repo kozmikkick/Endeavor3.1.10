@@ -946,11 +946,11 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
                          * limit the frequency to max lpcpu if lpcpu is online
                          * this should avoid fast "peak"-switching out of lpcpu */
                         if (!is_lp_cluster())
-                                dbs_freq_increase(policy, dbs_tuners_ins.two_phase_freq);
+                                dbs_freq_increase(policy, debug_load, dbs_tuners_ins.two_phase_freq);
                         else if ((cpufreq_governor_screen == true) && (is_lp_cluster()))
-                                dbs_freq_increase(policy, idle_top_freq);
+                                dbs_freq_increase(policy, debug_load, idle_top_freq);
                         else if ((cpufreq_governor_screen == false) && (is_lp_cluster()))
-                                dbs_freq_increase(policy, ((idle_top_freq / 10) * 7));
+                                dbs_freq_increase(policy, debug_load, ((idle_top_freq / 10) * 7));
 		} else {
             debug_freq = policy->max;
 
