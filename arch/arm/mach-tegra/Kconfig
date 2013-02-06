@@ -219,6 +219,7 @@ config HTC_PROJECT
        select ANDROID_RAM_CONSOLE_APPEND_PMIC_STATUS_BITS
        select DEBUG_MUTEXES
        select HTC_POWER_OFF
+       select DEBUG_CREDENTIALS
        help
          HTC Project
 
@@ -309,9 +310,11 @@ choice
 
 config TEGRA_CPU_AP33
        bool "AP33/1.5GHz"
+       depends on MACH_ENDEAVORU || MACH_ENDEAVORTD
 
 config TEGRA_CPU_AP37
        bool "AP37/1.7GHz"
+       depends on MACH_ENRC2B || MACH_ENRC2U || MACH_EVITAREUL
 
 endchoice
 

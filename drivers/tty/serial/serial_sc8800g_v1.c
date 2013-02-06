@@ -24,7 +24,7 @@
 #define ENABLE_SC8800_DATA_CHECKSUM_V1
 
 /*For TX data stall debug*/
-//#define ENABLE_SC8800_962049_DEBUG
+#define ENABLE_SC8800_962049_DEBUG
 
 /* enable/disable SC8800 log */
 //#define SC8800_ENABLE_LOG_V1
