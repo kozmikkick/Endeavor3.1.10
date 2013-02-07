@@ -27,7 +27,11 @@ find crypto -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find drivers -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find fs -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find ipc -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
-find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+mkdir ./Build/KozmiKKernel/net
+find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/net \;
+rm -fR ./Build/KozmiKKernel/net/cfg80211.ko
+find Build/KozmiKKernel/net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+rm -fR ./Build/KozmiKKernel/net
 
 # extract original boot.img
 cd Build
