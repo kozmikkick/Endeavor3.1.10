@@ -1,15 +1,73 @@
-rm -fR ./bootimg.out
+# compile the kernel
+cd ..
+export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
+make -j4 ap33_android_defconfig
+make -j4
+
+# Back up files to be changed upon compiling wifi modules (keeps it from tracking on github)
+cp drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h Build/compat_autoconf.h
+cp drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers Build/Module.symvers
+
+# compile the wireless modules
+make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` clean -j4
+make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` -j4
+
+# revert changes necessary to compiling back after compiling (keeps it from tracking on github)
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
+cp Build/compat_autoconf.h drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
+cp Build/Module.symvers drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/modules
+rm -fR ./Build/compat_autoconf.h
+rm -fR ./Build/Module.symvers
+
+# copy modules
+find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find crypto -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find drivers -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find fs -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find ipc -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+
+# extract original boot.img
+cd Build
+mkdir ramdisk
+mkdir structure.new/modules
+mkdir zImage.new
+
+./tools/split_bootimg.pl ./bootimg.base/boot.img
+cd ramdisk
+gzip -dc ../boot.img-ramdisk.gz | cpio -i
+cd ..
+
+# copy zImage
+cp -f arch/arm/boot/zImage Build/zImage.new/zImage
+cp -f arch/arm/boot/zImage Build/KozmiKKernel/zImage
+
+# compile boot.img
 mkdir bootimg.out
 mkdir -p ./ramdisk/system/lib/modules
-cd structure.new
-cp -fR ./*  ../ramdisk
 cd ../ramdisk
 find . | cpio -o -H newc | gzip > ../newramdisk.cpio.gz
 cd ..
 ./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdisk.cpio.gz --pagesize 2048 -o ./bootimg.out/boot.img
 
+cp ./bootimg.out/boot.img ./KozmiKKernel/boot.img
+cp -f arch/arm/boot/zImage Build/zImage.new/zImage
+
+# compile install zip
+cd KozmiKKernel
+zip -r ./KozmiKKernel.zip ./META-INF ./modules boot.img zImage
+
+# cleaning up
+cd ..
+rm -fR ./KozmiKKernel/zImage
+rm -fR ./KozmiKKernel/boot.img
+rm -fR ./KozmiKKernel/modules
+mkdir ./KozmiKKernel/modules
 rm -fR ./ramdisk
 rm -fR ./boot.img-kernel
 rm -fR ./boot.img-ramdisk.gz
 rm -fR ./newramdisk.cpio.gz
+rm -fR ./bootimg.out
 
