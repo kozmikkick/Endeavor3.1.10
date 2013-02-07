@@ -32,7 +32,6 @@ find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 # extract original boot.img
 cd Build
 mkdir ramdisk
-mkdir structure.new/modules
 mkdir zImage.new
 
 ./tools/split_bootimg.pl ./bootimg.base/boot.img
