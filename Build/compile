@@ -39,21 +39,22 @@ mkdir zImage.new
 cd ramdisk
 gzip -dc ../boot.img-ramdisk.gz | cpio -i
 cd ..
+cd ..
 
 # copy zImage
 cp -f arch/arm/boot/zImage Build/zImage.new/zImage
 cp -f arch/arm/boot/zImage Build/KozmiKKernel/zImage
 
+cd Build
 # compile boot.img
 mkdir bootimg.out
 mkdir -p ./ramdisk/system/lib/modules
-cd ../ramdisk
+cd ramdisk
 find . | cpio -o -H newc | gzip > ../newramdisk.cpio.gz
 cd ..
 ./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdisk.cpio.gz --pagesize 2048 -o ./bootimg.out/boot.img
 
 cp ./bootimg.out/boot.img ./KozmiKKernel/boot.img
-cp -f arch/arm/boot/zImage Build/zImage.new/zImage
 
 # compile install zip
 cd KozmiKKernel
@@ -70,4 +71,5 @@ rm -fR ./boot.img-kernel
 rm -fR ./boot.img-ramdisk.gz
 rm -fR ./newramdisk.cpio.gz
 rm -fR ./bootimg.out
+rm -fR ./zImage.new
 
