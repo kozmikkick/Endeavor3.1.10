@@ -49,6 +49,7 @@ ui_print("Extracting and Updating System Modules");
 mount("ext4", "EMMC", "/dev/block/mmcblk0p12", "/system");
 delete_recursive("/system/lib/modules");
 package_extract_dir("modules", "/system/lib/modules");
+set_perm_recursive(0, 0, 0755, 0755, "/system/lib/modules");
 package_extract_file("boot.img", "/dev/block/platform/sdhci-tegra.3/by-name/LNX");
 unmount("/system");
 ui_print("");
