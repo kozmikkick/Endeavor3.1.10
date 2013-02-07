@@ -247,18 +247,9 @@ static void edp_update_limit(void)
 #endif
 }
 
-extern unsigned int no_edp_limit;
-
 static unsigned int edp_governor_speed(unsigned int requested_speed)
 {
-    /* ignore EDP (regulator max output) limitation */
-    if (unlikely(no_edp_limit))
-        return requested_speed;
-
-	if ((!edp_limit) || (requested_speed <= edp_limit))
-		return requested_speed;
-	else
-		return edp_limit;
+	return requested_speed;
 }
 
 int tegra_edp_update_thermal_zone(int temperature)
@@ -748,11 +739,6 @@ unsigned int mips_aggressive_factor = 6;
 module_param(mips_aggressive_factor, uint, 0644);
 EXPORT_SYMBOL (mips_aggressive_factor);
 #endif
-
-/* disable edp limitations */
-unsigned int no_edp_limit = 0;
-module_param(no_edp_limit, uint, 0644);
-EXPORT_SYMBOL (no_edp_limit);
 
 /* disable thermal throttling limitations */
 unsigned int no_thermal_throttle_limit = 0;
@@ -2121,12 +2107,20 @@ struct early_suspend tegra_cpufreq_powersave_early_suspender;
 struct early_suspend tegra_cpufreq_performance_early_suspender;
 static struct pm_qos_request_list boost_cpu_freq_req;
 static struct pm_qos_request_list cap_cpu_freq_req;
+#ifdef CONFIG_TEGRA_CPU_AP33
+#define BOOST_CPU_FREQ_MIN 1550000
+#else
 #define BOOST_CPU_FREQ_MIN 1700000
+#endif
 #define CAP_CPU_FREQ_MAX 640000
 #endif
 static int enter_early_suspend = 0;
 static int perf_early_suspend = 0;
+#ifdef CONFIG_TEGRA_CPU_AP33
+static int CAP_CPU_FREQ_TARGET = 1550000;
+#else
 static int CAP_CPU_FREQ_TARGET = 1700000;
+#endif
 
 static int tegra_pm_notify(struct notifier_block *nb, unsigned long event,
 	void *dummy)
@@ -2258,7 +2252,11 @@ static int tegra_cpufreq_resume(struct cpufreq_policy *policy)
 {
 	/*if it's a power key wakeup, uncap the cpu powersave mode for future boost*/
 	if (wake_reason_resume == 0x80)
+#ifdef CONFIG_TEGRA_CPU_AP33
+		policy->max = 1550000;
+#else
 		policy->max = 1700000;
+#endif
 	return 0;
 }
 
