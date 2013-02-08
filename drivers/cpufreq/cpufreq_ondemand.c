@@ -693,8 +693,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 {
 	unsigned int max_load_freq;
 	unsigned int debug_freq;
-	unsigned int debug_load;
-	unsigned int debug_iowait;
+	unsigned int debug_load = 0;
+	unsigned int debug_iowait = 0;
 
 	struct cpufreq_policy *policy;
 	unsigned int j;
@@ -884,12 +884,13 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
             }
 
             /* NEVER less than current speed */
-            if (debug_freq < policy->cur)
-                if (debug_load > DEF_TWO_PHASE_GO_MAX_LOAD)
+            if (debug_freq < policy->cur) {
+                if (debug_load > DEF_TWO_PHASE_GO_MAX_LOAD) {
                     debug_freq = policy->max;
-                else
+                } else {
                     debug_freq = policy->cur;
-
+                       }
+            }
         /* busy phase */
 		} else {
             debug_freq = policy->max;
