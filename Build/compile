@@ -67,12 +67,10 @@ rm -fR ./bootsense.img-kernel
 rm -fR ./bootsense.img-ramdisk.gz
 rm -fR ./newramdisksense.cpio.gz
 rm -fR ./bootimg.out
-rm -fR ./zImage.new
 
 ####Building icj boot.img Start####
 # extract original boot.img
 mkdir ramdisk
-mkdir zImage.new
 
 ./tools/split_bootimg.pl ./bootimg.base/booticj.img
 cd ramdisk
