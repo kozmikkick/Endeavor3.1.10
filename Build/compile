@@ -33,14 +33,15 @@ rm -fR ./Build/KozmiKKernel/net/cfg80211.ko
 find Build/KozmiKKernel/net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 rm -fR ./Build/KozmiKKernel/net
 
+####Building sense boot.img Start####
 # extract original boot.img
 cd Build
 mkdir ramdisk
 mkdir zImage.new
 
-./tools/split_bootimg.pl ./bootimg.base/boot.img
+./tools/split_bootimg.pl ./bootimg.base/bootsense.img
 cd ramdisk
-gzip -dc ../boot.img-ramdisk.gz | cpio -i
+gzip -dc ../bootsense.img-ramdisk.gz | cpio -i
 cd ..
 cd ..
 
@@ -53,26 +54,57 @@ cd Build
 mkdir bootimg.out
 mkdir -p ./ramdisk/system/lib/modules
 cd ramdisk
-find . | cpio -o -H newc | gzip > ../newramdisk.cpio.gz
+find . | cpio -o -H newc | gzip > ../newramdisksense.cpio.gz
 cd ..
-./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdisk.cpio.gz --pagesize 2048 -o ./bootimg.out/boot.img
+./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdisksense.cpio.gz --pagesize 2048 -o ./bootimg.out/bootsense.img
 
-cp ./bootimg.out/boot.img ./KozmiKKernel/boot.img
+cp ./bootimg.out/bootsense.img ./KozmiKKernel/bootsense.img
+####Building sense boot.img Finish####
+
+# cleaning up
+rm -fR ./ramdisk
+rm -fR ./bootsense.img-kernel
+rm -fR ./bootsense.img-ramdisk.gz
+rm -fR ./newramdisksense.cpio.gz
+rm -fR ./bootimg.out
+rm -fR ./zImage.new
+
+####Building icj boot.img Start####
+# extract original boot.img
+mkdir ramdisk
+mkdir zImage.new
+
+./tools/split_bootimg.pl ./bootimg.base/booticj.img
+cd ramdisk
+gzip -dc ../booticj.img-ramdisk.gz | cpio -i
+cd ..
+
+# compile boot.img
+mkdir bootimg.out
+mkdir -p ./ramdisk/system/lib/modules
+cd ramdisk
+find . | cpio -o -H newc | gzip > ../newramdiskicj.cpio.gz
+cd ..
+./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdiskicj.cpio.gz --pagesize 2048 -o ./bootimg.out/booticj.img
+
+cp ./bootimg.out/booticj.img ./KozmiKKernel/booticj.img
+####Building icj boot.img Finished####
 
 # compile install zip
 cd KozmiKKernel
-zip -r ./KozmiKKernel.zip ./META-INF ./modules boot.img zImage
+zip -r ./KozmiKKernel.zip ./META-INF ./modules bootsense.img booticj.img zImage
 
 # cleaning up
 cd ..
 rm -fR ./KozmiKKernel/zImage
-rm -fR ./KozmiKKernel/boot.img
+rm -fR ./KozmiKKernel/bootsense.img
+rm -fR ./KozmiKKernel/booticj.img
 rm -fR ./KozmiKKernel/modules
 mkdir ./KozmiKKernel/modules
 rm -fR ./ramdisk
-rm -fR ./boot.img-kernel
-rm -fR ./boot.img-ramdisk.gz
-rm -fR ./newramdisk.cpio.gz
+rm -fR ./booticj.img-kernel
+rm -fR ./booticj.img-ramdisk.gz
+rm -fR ./newramdiskicj.cpio.gz
 rm -fR ./bootimg.out
 rm -fR ./zImage.new
 
