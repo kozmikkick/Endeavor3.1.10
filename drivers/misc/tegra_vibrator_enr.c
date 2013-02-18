@@ -31,7 +31,7 @@
 #include <linux/pm_qos_params.h>
 #include <linux/cpufreq.h>
 #include <linux/sched.h>
-#define BOOST_CPU_FREQ_MIN 475000
+#define BOOST_CPU_FREQ_MIN 400000
 
 #define PLAYBACK_PERIOD_US 		50000
 #define ZERO_DUTY_US 			25000
@@ -132,8 +132,8 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 	if (value) {
 //		printk(KERN_INFO "[VIB] vibration enable and duration time %d ms:%s(parent:%s): tgid=%d\n", value,current->comm, current->parent->comm, current->tgid);
 		if(value==18) {
-			if(is_only_cpu0_online && cpufreq_get(0) < 475000) {
-				printk("[VIB] boost CPU#0 freq to 475MHZ\n");
+			if(is_only_cpu0_online && cpufreq_get(0) < 400000) {
+				printk("[VIB] boost CPU#0 freq to 400MHZ\n");
 				/* To get policy of current cpu */
 				cpufreq_get_policy(&policy, smp_processor_id());
 				pm_qos_update_request(&boost_cpu_freq_req, (s32)BOOST_CPU_FREQ_MIN);
