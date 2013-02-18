@@ -62,12 +62,14 @@ static spinlock_t speedchange_cpumask_lock;
 static unsigned long go_maxspeed_load;
 
 /* Base of exponential raise to max speed; if 0 - jump to maximum */
+#define DEFAULT_BOOST_FACTOR 3
 static unsigned long boost_factor;
 
 /* Max frequency boost in Hz; if 0 - no max is enforced */
 static unsigned long max_boost;
 
 /* Consider IO as busy */
+#define DEFAULT_IO_IS_BUSY 1
 static unsigned long io_is_busy;
 
 /*
@@ -693,6 +695,8 @@ static int __init cpufreq_interactive_init(void)
 	struct sched_param param = { .sched_priority = MAX_RT_PRIO-1 };
 
 	go_maxspeed_load = DEFAULT_GO_MAXSPEED_LOAD;
+	boost_factor = DEFAULT_BOOST_FACTOR;
+	io_is_busy = DEFAULT_IO_IS_BUSY;
 	midrange_go_maxspeed_load = DEFAULT_MID_RANGE_GO_MAXSPEED_LOAD;
 	min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 	timer_rate = DEFAULT_TIMER_RATE;
