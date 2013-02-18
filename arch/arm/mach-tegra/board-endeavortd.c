@@ -51,6 +51,11 @@
 #ifdef CONFIG_TEGRA_VIBRATOR_ENR
 #include <linux/tegra_vibrator_enr.h>
 #endif
+
+#ifdef CONFIG_TRIPNDROID_VIBRATOR
+#include <linux/tripndroid_vibrator.h>
+#endif
+
 #include <linux/serial_sc8800g.h>
 
 #include <mach/clk.h>
@@ -290,6 +295,29 @@ static struct platform_device tegra_vibrator = {
 	},
 };
 static void tegra_vibrator_init(void)
+{
+	platform_device_register(&tegra_vibrator);
+}
+#endif
+
+#ifdef CONFIG_TRIPNDROID_VIBRATOR
+static struct vibrator_platform_data vibrator_data = {
+	.pwm_data={
+		.name = "vibrator",
+		.bank = 0,
+	},
+	.pwm_gpio = TEGRA_GPIO_PH0,
+	.ena_gpio = TEGRA_GPIO_PF1,
+	.pwr_gpio = TEGRA_GPIO_PE7,
+};
+static struct platform_device tegra_vibrator = {
+	.name= VIBRATOR_NAME,
+	.id=-1,
+	.dev = {
+		.platform_data=&vibrator_data,
+	},
+};
+static void tripndroid_vibrator_init(void)
 {
 	platform_device_register(&tegra_vibrator);
 }
@@ -2504,7 +2532,15 @@ static void __init endeavortd_init(void)
 	endeavortd_cam_init();
 	endeavortd_suspend_init();
 	tegra_release_bootloader_fb();
+
+#ifdef CONFIG_TEGRA_VIBRATOR_ENR
 	tegra_vibrator_init();
+#endif
+
+#ifdef CONFIG_TRIPNDROID_VIBRATOR
+	tripndroid_vibrator_init();
+#endif
+
 	leds_lp5521_init();
 	endeavor_flashlight_init();
 #if defined(CONFIG_CABLE_DETECT_ACCESSORY)
