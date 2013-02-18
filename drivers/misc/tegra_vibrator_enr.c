@@ -66,7 +66,7 @@ static enum hrtimer_restart vib_timer_func(struct hrtimer *timer)
 
 	int rc;
 	I(" %s +++\n", __func__);
-	printk("[VIB] vib_timer_func, vibration stop\n");
+//	printk("[VIB] vib_timer_func, vibration stop\n");
 	rc = gpio_direction_output(vib->pdata->ena_gpio, 0);
 	if(rc<0){
 		pr_err("[VIB] set gpio output direction fail in timer function\n");
@@ -130,7 +130,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 	if (value < 0)
 		return;
 	if (value) {
-		printk(KERN_INFO "[VIB] vibration enable and duration time %d ms:%s(parent:%s): tgid=%d\n", value,current->comm, current->parent->comm, current->tgid);
+//		printk(KERN_INFO "[VIB] vibration enable and duration time %d ms:%s(parent:%s): tgid=%d\n", value,current->comm, current->parent->comm, current->tgid);
 		if(value==18) {
 			if(is_only_cpu0_online && cpufreq_get(0) < 475000) {
 				printk("[VIB] boost CPU#0 freq to 475MHZ\n");
@@ -148,7 +148,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 			      ktime_set(value / 1000, (value % 1000) * 1000000),
 			      HRTIMER_MODE_REL);
 	} else {
-		printk("[VIB] vibration disable.\n");
+//		printk("[VIB] vibration disable.\n");
 		vibrator_stop(vib);
 	}
 	I(" %s ---\n", __func__);
