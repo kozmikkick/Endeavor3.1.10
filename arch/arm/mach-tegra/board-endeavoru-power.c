@@ -55,6 +55,9 @@
 #endif
 #include <linux/tps80032_charger.h>
 #include <linux/tps80032_gauge.h>
+#include "tegra_pmqos.h"
+
+unsigned int tegra_pmqos_boost_freq = BOOST_CPU_FREQ_MIN;
 
 #define PMC_CTRL		0x0
 #define PMC_CTRL_INTR_LOW	(1 << 17)
