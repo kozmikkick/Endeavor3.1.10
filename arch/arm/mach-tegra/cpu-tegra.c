@@ -55,7 +55,8 @@
 extern int mpdecision_gmode_notifier(void);
 #endif
 
-extern unsigned int get_powersave_freq();
+extern unsigned int get_powersave_freq(void);
+
 /* Symbol to store resume resume */
 extern unsigned long long wake_reason_resume;
 static spinlock_t user_cap_lock;
@@ -546,7 +547,6 @@ int tegra_update_cpu_speed(unsigned long rate)
         unsigned long rate_save = rate;
         int status = 1;
 
-	unsigned long rate_save = rate;
 	int orig_nice = 0;
 	freqs.old = tegra_getspeed(0);
 	freqs.new = rate;
@@ -2367,7 +2367,7 @@ static void htc_suspend_resume_worker(struct work_struct *w)
 		" boost cpu freq to Max freq by RIL\n");
 }
 
-void release_screen_off_freq_lock(unsigned int capfreq )
+void release_screen_off_freq_lock(unsigned int capfreq)
 {
     if (enter_early_suspend){
 //        perf_early_suspend = 1 ;
