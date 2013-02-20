@@ -33,6 +33,8 @@
 
 #include <trace/events/power.h>
 
+#include "../arch/arm/mach-tegra/tegra_pmqos.h"
+
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
  * level driver of CPUFreq support, and its spinlock. This lock
