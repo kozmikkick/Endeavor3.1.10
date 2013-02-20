@@ -34,15 +34,8 @@ find Build/KozmiKKernel/net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKern
 rm -fR ./Build/KozmiKKernel/net
 
 ####Building sense boot.img Start####
-# extract original boot.img
 cd Build
-mkdir ramdisk
 mkdir zImage.new
-
-./tools/split_bootimg.pl ./bootimg.base/bootsense.img
-cd ramdisk
-gzip -dc ../bootsense.img-ramdisk.gz | cpio -i
-cd ..
 cd ..
 
 # copy zImage
@@ -50,10 +43,10 @@ cp -f arch/arm/boot/zImage Build/zImage.new/zImage
 cp -f arch/arm/boot/zImage Build/KozmiKKernel/zImage
 
 cd Build
-# compile boot.img
+# compile bootsense.img
 mkdir bootimg.out
-mkdir -p ./ramdisk/system/lib/modules
-cd ramdisk
+mkdir -p ./ramdisk-sense/system/lib/modules
+cd ramdisk-sense
 find . | cpio -o -H newc | gzip > ../newramdisksense.cpio.gz
 cd ..
 ./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdisksense.cpio.gz --pagesize 2048 -o ./bootimg.out/bootsense.img
@@ -62,47 +55,35 @@ cp ./bootimg.out/bootsense.img ./KozmiKKernel/bootsense.img
 ####Building sense boot.img Finish####
 
 # cleaning up
-rm -fR ./ramdisk
-rm -fR ./bootsense.img-kernel
-rm -fR ./bootsense.img-ramdisk.gz
+rm -fR ./ramdisk-sense/system
 rm -fR ./newramdisksense.cpio.gz
 rm -fR ./bootimg.out
 
-####Building icj boot.img Start####
-# extract original boot.img
-mkdir ramdisk
-
-./tools/split_bootimg.pl ./bootimg.base/booticj.img
-cd ramdisk
-gzip -dc ../booticj.img-ramdisk.gz | cpio -i
-cd ..
-
+####Building aosp boot.img Start####
 # compile boot.img
 mkdir bootimg.out
-mkdir -p ./ramdisk/system/lib/modules
-cd ramdisk
-find . | cpio -o -H newc | gzip > ../newramdiskicj.cpio.gz
+mkdir -p ./ramdisk-aosp/system/lib/modules
+cd ramdisk-aosp
+find . | cpio -o -H newc | gzip > ../newramdiskaosp.cpio.gz
 cd ..
-./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdiskicj.cpio.gz --pagesize 2048 -o ./bootimg.out/booticj.img
+./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdiskaosp.cpio.gz --pagesize 2048 -o ./bootimg.out/bootaosp.img
 
-cp ./bootimg.out/booticj.img ./KozmiKKernel/booticj.img
-####Building icj boot.img Finished####
+cp ./bootimg.out/bootaosp.img ./KozmiKKernel/bootaosp.img
+####Building aosp boot.img Finished####
 
 # compile install zip
 cd KozmiKKernel
-zip -r ./KozmiKKernel.zip ./META-INF ./modules bootsense.img booticj.img zImage
+zip -r ./KozmiKKernel.zip ./META-INF ./modules bootsense.img bootaosp.img zImage
 
 # cleaning up
 cd ..
 rm -fR ./KozmiKKernel/zImage
 rm -fR ./KozmiKKernel/bootsense.img
-rm -fR ./KozmiKKernel/booticj.img
+rm -fR ./KozmiKKernel/bootaosp.img
 rm -fR ./KozmiKKernel/modules
 mkdir ./KozmiKKernel/modules
-rm -fR ./ramdisk
-rm -fR ./booticj.img-kernel
-rm -fR ./booticj.img-ramdisk.gz
-rm -fR ./newramdiskicj.cpio.gz
+rm -fR ./ramdisk-aosp/system
+rm -fR ./newramdiskaosp.cpio.gz
 rm -fR ./bootimg.out
 rm -fR ./zImage.new
 
