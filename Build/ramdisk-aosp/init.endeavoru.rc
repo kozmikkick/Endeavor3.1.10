@@ -202,6 +202,16 @@ on boot
 # Sensor
     chown system system /sys/bus/iio/devices/device0/als_ir_mode
     chown system system /sys/bus/iio/devices/device0/proximity_enable
+    mkdir /data/sensors 0751 system system
+    mkdir /data/lightsensor 0751 system system
+    chmod 666 /dev/nvhost-ctrl
+    chmod 666 /dev/nvhost-display
+    chmod 666 /dev/nvhost-dsi
+    chmod 666 /dev/nvhost-gr2d
+    chmod 666 /dev/nvhost-gr3d
+    chmod 666 /dev/nvhost-isp
+    chmod 666 /dev/nvhost-mpe
+    chmod 666 /dev/nvhost-vi
 
 # BB remote file system
     mkdir /data/rfs
