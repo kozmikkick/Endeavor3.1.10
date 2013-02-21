@@ -50,7 +50,7 @@
 #define TEGRA_MPDEC_PAUSE                 10000
 
 /* will be overwritten later by lpcpu max clock */
-#define TEGRA_MPDEC_IDLE_FREQ             475000
+#define TEGRA_MPDEC_IDLE_FREQ             400000
 
 /* This rq value will be used if we only have the lpcpu online */
 #define TEGRA_MPDEC_LPCPU_RQ_DOWN         36
