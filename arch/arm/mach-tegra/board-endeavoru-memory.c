@@ -266,7 +266,7 @@ static const struct tegra_emc_table endeavor_emc_tables_h5tc2g_400[] = {
 	},
 	{
 		0x31,       /* Rev 3.1 */
-		102000,     /* SDRAM frequency */
+		100000,     /* SDRAM frequency */
 		{
 			0x00000006, /* EMC_RC */
 			0x0000000d, /* EMC_RFC */
@@ -385,7 +385,7 @@ static const struct tegra_emc_table endeavor_emc_tables_h5tc2g_400[] = {
 	},
 	{
 		0x31,       /* Rev 3.1 */
-		204000,     /* SDRAM frequency */
+		200000,     /* SDRAM frequency */
 		{
 			0x0000000c, /* EMC_RC */
 			0x0000001a, /* EMC_RFC */
@@ -867,7 +867,7 @@ static const struct tegra_emc_table endeavor_emc_tables_h5tc2g_533[] =
 	},
 	{
 		0x32,       /* Rev 3.2 */
-		102000,     /* SDRAM frequency */
+		100000,     /* SDRAM frequency */
 		{
 			0x00000006, /* EMC_RC */
 			0x0000000d, /* EMC_RFC */
@@ -987,7 +987,7 @@ static const struct tegra_emc_table endeavor_emc_tables_h5tc2g_533[] =
 	},
 	{
 		0x32,       /* Rev 3.2 */
-		204000,     /* SDRAM frequency */
+		200000,     /* SDRAM frequency */
 		{
 			0x0000000c, /* EMC_RC */
 			0x0000001a, /* EMC_RFC */
@@ -1107,7 +1107,7 @@ static const struct tegra_emc_table endeavor_emc_tables_h5tc2g_533[] =
 	},
 	{
 		0x32,       /* Rev 3.2 */
-		266500,     /* SDRAM frequency */
+		250000,     /* SDRAM frequency */
 		{
 			0x0000000f, /* EMC_RC */
 			0x00000022, /* EMC_RFC */
@@ -1227,7 +1227,7 @@ static const struct tegra_emc_table endeavor_emc_tables_h5tc2g_533[] =
 	},
 	{
 		0x32,       /* Rev 3.2 */
-		380000,     /* SDRAM frequency */
+		400000,     /* SDRAM frequency */
 		{
 			0x00000016, /* EMC_RC */
 			0x00000031, /* EMC_RFC */
@@ -1347,7 +1347,7 @@ static const struct tegra_emc_table endeavor_emc_tables_h5tc2g_533[] =
 	},
 	{
 		0x32,       /* Rev 3.2 */
-		533000,     /* SDRAM frequency */
+		500000,     /* SDRAM frequency */
 		{
 			0x0000001f, /* EMC_RC */
 			0x00000045, /* EMC_RFC */
