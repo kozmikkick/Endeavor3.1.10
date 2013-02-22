@@ -1,7 +1,41 @@
+show_menu(){
+    NORMAL=`echo "\033[m"`
+    MENU=`echo "\033[36m"` #Blue
+    NUMBER=`echo "\033[33m"` #yellow
+    FGRED=`echo "\033[41m"`
+    RED_TEXT=`echo "\033[31m"`
+    ENTER_LINE=`echo "\033[33m"`
+    echo -e "${MENU}*********************************************${NORMAL}"
+    echo -e "${MENU}     Select which Hotplug you want to use:${NORMAL}"
+    echo -e "${MENU}*********************************************${NORMAL}"
+    echo -e "${MENU}**${NUMBER} 1)${MENU} Standard Nvidia Auto Hotplug ${NORMAL}"
+    echo -e "${MENU}**${NUMBER} 2)${MENU} Nvidia Cpuquiet ${NORMAL}"
+    echo -e "${MENU}**${NUMBER} 3)${MENU} Dennis Rassmann's Mpdecision  ${NORMAL}"
+    echo -e "${MENU}*********************************************${NORMAL}"
+    echo -e "${ENTER_LINE}Please enter a menu option and enter or ${RED_TEXT}enter to exit. ${NORMAL}"
+    read opt
+}
+function option_picked() {
+    COLOR='\033[01;31m' # bold red
+    RESET='\033[00;00m' # normal white
+    MESSAGE=${@:-"${RESET}Error: No message passed"}
+    echo -e "${COLOR}${MESSAGE}${RESET}"
+}
+
+clear
+show_menu
+while [ opt != '' ]
+    do
+    if [[ $opt = "" ]]; then
+        exec bash;
+    else
+        case $opt in
+        1) clear;
+           option_picked "Standard Nvidia Auto Hotplug has been picked";
 # compile the kernel
 cd ..
 export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
-make -j4 kozmik_defconfig
+make -j4 kozmik_auto_hotplug_defconfig
 make -j4
 
 # Back up files to be changed upon compiling wifi modules (keeps it from tracking on github)
@@ -86,4 +120,205 @@ rm -fR ./ramdisk-aosp/system
 rm -fR ./newramdiskaosp.cpio.gz
 rm -fR ./bootimg.out
 rm -fR ./zImage.new
+           exec bash
+           ;;
 
+        2) clear;
+            option_picked "Nvidia Cpuquiet has been picked";
+# compile the kernel
+cd ..
+export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
+make -j4 kozmik_cpuquiet_defconfig
+make -j4
+
+# Back up files to be changed upon compiling wifi modules (keeps it from tracking on github)
+cp drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h Build/compat_autoconf.h
+cp drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers Build/Module.symvers
+
+# compile the wireless modules
+make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` clean -j4
+make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` -j4
+
+# revert changes necessary to compiling back after compiling (keeps it from tracking on github)
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
+cp Build/compat_autoconf.h drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
+cp Build/Module.symvers drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/modules
+rm -fR ./Build/compat_autoconf.h
+rm -fR ./Build/Module.symvers
+
+# copy modules
+find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find crypto -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find drivers -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find fs -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find ipc -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+mkdir ./Build/KozmiKKernel/net
+find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/net \;
+rm -fR ./Build/KozmiKKernel/net/cfg80211.ko
+find Build/KozmiKKernel/net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+rm -fR ./Build/KozmiKKernel/net
+
+####Building sense boot.img Start####
+cd Build
+mkdir zImage.new
+cd ..
+
+# copy zImage
+cp -f arch/arm/boot/zImage Build/zImage.new/zImage
+cp -f arch/arm/boot/zImage Build/KozmiKKernel/zImage
+
+cd Build
+# compile bootsense.img
+mkdir bootimg.out
+mkdir -p ./ramdisk-sense/system/lib/modules
+cd ramdisk-sense
+find . | cpio -o -H newc | gzip > ../newramdisksense.cpio.gz
+cd ..
+./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdisksense.cpio.gz --pagesize 2048 -o ./bootimg.out/bootsense.img
+
+cp ./bootimg.out/bootsense.img ./KozmiKKernel/bootsense.img
+####Building sense boot.img Finish####
+
+# cleaning up
+rm -fR ./ramdisk-sense/system
+rm -fR ./newramdisksense.cpio.gz
+rm -fR ./bootimg.out
+
+####Building aosp boot.img Start####
+# compile boot.img
+mkdir bootimg.out
+mkdir -p ./ramdisk-aosp/system/lib/modules
+cd ramdisk-aosp
+find . | cpio -o -H newc | gzip > ../newramdiskaosp.cpio.gz
+cd ..
+./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdiskaosp.cpio.gz --pagesize 2048 -o ./bootimg.out/bootaosp.img
+
+cp ./bootimg.out/bootaosp.img ./KozmiKKernel/bootaosp.img
+####Building aosp boot.img Finished####
+
+# compile install zip
+cd KozmiKKernel
+zip -r ./KozmiKKernel.zip ./META-INF ./modules bootsense.img bootaosp.img zImage
+
+# cleaning up
+cd ..
+rm -fR ./KozmiKKernel/zImage
+rm -fR ./KozmiKKernel/bootsense.img
+rm -fR ./KozmiKKernel/bootaosp.img
+rm -fR ./KozmiKKernel/modules
+mkdir ./KozmiKKernel/modules
+rm -fR ./ramdisk-aosp/system
+rm -fR ./newramdiskaosp.cpio.gz
+rm -fR ./bootimg.out
+rm -fR ./zImage.new
+            exec bash
+            ;;
+
+        3) clear;
+            option_picked "Dennis Rassmann's Mpdecision has been picked";
+# compile the kernel
+cd ..
+export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
+make -j4 kozmik_mpdecision_defconfig
+make -j4
+
+# Back up files to be changed upon compiling wifi modules (keeps it from tracking on github)
+cp drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h Build/compat_autoconf.h
+cp drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers Build/Module.symvers
+
+# compile the wireless modules
+make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` clean -j4
+make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` -j4
+
+# revert changes necessary to compiling back after compiling (keeps it from tracking on github)
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
+cp Build/compat_autoconf.h drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
+cp Build/Module.symvers drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
+rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/modules
+rm -fR ./Build/compat_autoconf.h
+rm -fR ./Build/Module.symvers
+
+# copy modules
+find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find crypto -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find drivers -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find fs -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+find ipc -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+mkdir ./Build/KozmiKKernel/net
+find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/net \;
+rm -fR ./Build/KozmiKKernel/net/cfg80211.ko
+find Build/KozmiKKernel/net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
+rm -fR ./Build/KozmiKKernel/net
+
+####Building sense boot.img Start####
+cd Build
+mkdir zImage.new
+cd ..
+
+# copy zImage
+cp -f arch/arm/boot/zImage Build/zImage.new/zImage
+cp -f arch/arm/boot/zImage Build/KozmiKKernel/zImage
+
+cd Build
+# compile bootsense.img
+mkdir bootimg.out
+mkdir -p ./ramdisk-sense/system/lib/modules
+cd ramdisk-sense
+find . | cpio -o -H newc | gzip > ../newramdisksense.cpio.gz
+cd ..
+./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdisksense.cpio.gz --pagesize 2048 -o ./bootimg.out/bootsense.img
+
+cp ./bootimg.out/bootsense.img ./KozmiKKernel/bootsense.img
+####Building sense boot.img Finish####
+
+# cleaning up
+rm -fR ./ramdisk-sense/system
+rm -fR ./newramdisksense.cpio.gz
+rm -fR ./bootimg.out
+
+####Building aosp boot.img Start####
+# compile boot.img
+mkdir bootimg.out
+mkdir -p ./ramdisk-aosp/system/lib/modules
+cd ramdisk-aosp
+find . | cpio -o -H newc | gzip > ../newramdiskaosp.cpio.gz
+cd ..
+./tools/mkbootimg --kernel ./zImage.new/zImage --ramdisk ./newramdiskaosp.cpio.gz --pagesize 2048 -o ./bootimg.out/bootaosp.img
+
+cp ./bootimg.out/bootaosp.img ./KozmiKKernel/bootaosp.img
+####Building aosp boot.img Finished####
+
+# compile install zip
+cd KozmiKKernel
+zip -r ./KozmiKKernel.zip ./META-INF ./modules bootsense.img bootaosp.img zImage
+
+# cleaning up
+cd ..
+rm -fR ./KozmiKKernel/zImage
+rm -fR ./KozmiKKernel/bootsense.img
+rm -fR ./KozmiKKernel/bootaosp.img
+rm -fR ./KozmiKKernel/modules
+mkdir ./KozmiKKernel/modules
+rm -fR ./ramdisk-aosp/system
+rm -fR ./newramdiskaosp.cpio.gz
+rm -fR ./bootimg.out
+rm -fR ./zImage.new
+            exec bash
+            ;;
+
+        x)exec bash;
+        ;;
+
+        \n)exec bash;
+        ;;
+
+        *)clear;
+        option_picked "Pick an option from the menu";
+        show_menu;
+        ;;
+    esac
+fi
+done
