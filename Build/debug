@@ -1,6 +1,75 @@
-# compile the kernel
-cd ..
-export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
-make -j4 kozmik_defconfig
-make -j4
-cd Build
+show_menu(){
+    NORMAL=`echo "\033[m"`
+    MENU=`echo "\033[36m"` #Blue
+    NUMBER=`echo "\033[33m"` #yellow
+    FGRED=`echo "\033[41m"`
+    RED_TEXT=`echo "\033[31m"`
+    ENTER_LINE=`echo "\033[33m"`
+    echo -e "${MENU}*********************************************${NORMAL}"
+    echo -e "${MENU}     Select which Hotplug you want to use:${NORMAL}"
+    echo -e "${MENU}*********************************************${NORMAL}"
+    echo -e "${MENU}**${NUMBER} 1)${MENU} Standard Nvidia Auto Hotplug ${NORMAL}"
+    echo -e "${MENU}**${NUMBER} 2)${MENU} Nvidia Cpuquiet ${NORMAL}"
+    echo -e "${MENU}**${NUMBER} 3)${MENU} Dennis Rassmann's Mpdecision  ${NORMAL}"
+    echo -e "${MENU}*********************************************${NORMAL}"
+    echo -e "${ENTER_LINE}Please enter a menu option and enter or ${RED_TEXT}enter to exit. ${NORMAL}"
+    read opt
+}
+function option_picked() {
+    COLOR='\033[01;31m' # bold red
+    RESET='\033[00;00m' # normal white
+    MESSAGE=${@:-"${RESET}Error: No message passed"}
+    echo -e "${COLOR}${MESSAGE}${RESET}"
+}
+
+clear
+show_menu
+while [ opt != '' ]
+    do
+    if [[ $opt = "" ]]; then
+        exec bash;
+    else
+        case $opt in
+        1) clear;
+           option_picked "Standard Nvidia Auto Hotplug Picked";
+           cd ..
+           export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
+           make -j4 kozmik_auto_hotplug_defconfig
+           make -j4
+           cd Build
+           exec bash
+           ;;
+
+        2) clear;
+            option_picked "Nvidia Cpuquiet Picked";
+            cd ..
+            export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
+            make -j4 kozmik_cpuquiet_defconfig
+            make -j4
+            cd Build
+            exec bash
+            ;;
+
+        3) clear;
+            option_picked "Option 3 Picked";
+            cd ..
+            export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
+            make -j4 kozmik_mpdecision_defconfig
+            make -j4
+            cd Build
+            exec bash
+            ;;
+
+        x)exec bash;
+        ;;
+
+        \n)exec bash;
+        ;;
+
+        *)clear;
+        option_picked "Pick an option from the menu";
+        show_menu;
+        ;;
+    esac
+fi
+done
