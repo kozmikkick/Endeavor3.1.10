@@ -61,7 +61,7 @@
 #define DEF_UI_COUNTER                          (5)
 #define DEF_IGNORE_NICE_LOAD                    (1)
 #define DEF_TWO_PHASE_FREQ                      (1000000)
-#define DEF_TWO_PHASE_BOTTOM_FREQ               (340000)
+#define DEF_TWO_PHASE_BOTTOM_FREQ               (300000)
 #define DEF_TWO_PHASE_GO_MAX_LOAD               (95)
 #define DEF_UX_LOADING                          (30)
 #define DEF_UX_FREQ                             (0)
