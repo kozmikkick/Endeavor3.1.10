@@ -31,7 +31,7 @@ while [ opt != '' ]
     else
         case $opt in
         1) clear;
-           option_picked "Standard Nvidia Auto Hotplug Picked";
+           option_picked "Standard Nvidia Auto Hotplug has been picked";
            cd ..
            export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
            make -j4 kozmik_auto_hotplug_defconfig
@@ -41,7 +41,7 @@ while [ opt != '' ]
            ;;
 
         2) clear;
-            option_picked "Nvidia Cpuquiet Picked";
+            option_picked "Nvidia Cpuquiet has been picked";
             cd ..
             export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
             make -j4 kozmik_cpuquiet_defconfig
@@ -51,7 +51,7 @@ while [ opt != '' ]
             ;;
 
         3) clear;
-            option_picked "Option 3 Picked";
+            option_picked "Dennis Rassmann's Mpdecision has been picked";
             cd ..
             export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
             make -j4 kozmik_mpdecision_defconfig
