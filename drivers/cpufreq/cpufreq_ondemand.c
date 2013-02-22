@@ -46,27 +46,31 @@
  * It helps to keep variable names smaller, simpler
  */
 
-#define DEF_FREQUENCY_DOWN_DIFFERENTIAL		(3)
-#define DEF_FREQUENCY_UP_THRESHOLD		(76)
-#define DEF_SAMPLING_DOWN_FACTOR		(4)
-#define MAX_SAMPLING_DOWN_FACTOR		(100000)
-#define MICRO_FREQUENCY_DOWN_DIFFERENTIAL	(3)
-#define MICRO_FREQUENCY_UP_THRESHOLD		(70)
-#define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
-#define MIN_FREQUENCY_UP_THRESHOLD		(11)
-#define MAX_FREQUENCY_UP_THRESHOLD		(100)
-#define DEF_SAMPLING_RATE			(50000)
-#define DEF_IO_IS_BUSY				(1)
-#define DEF_UI_DYNAMIC_SAMPLING_RATE		(30000)
-#define DEF_UI_COUNTER				(5)
+#define DEF_FREQUENCY_DOWN_DIFFERENTIAL         (3)
+#define DEF_FREQUENCY_UP_THRESHOLD              (76)
+#define DEF_SAMPLING_DOWN_FACTOR                (4)
+#define MAX_SAMPLING_DOWN_FACTOR                (100000)
+#define MICRO_FREQUENCY_DOWN_DIFFERENTIAL       (3)
+#define MICRO_FREQUENCY_UP_THRESHOLD            (70)
+#define MICRO_FREQUENCY_MIN_SAMPLE_RATE         (10000)
+#define MIN_FREQUENCY_UP_THRESHOLD              (11)
+#define MAX_FREQUENCY_UP_THRESHOLD              (100)
+#define DEF_SAMPLING_RATE                       (50000)
+#define DEF_IO_IS_BUSY                          (1)
+#define DEF_UI_DYNAMIC_SAMPLING_RATE            (30000)
+#define DEF_UI_COUNTER                          (5)
 #define DEF_IGNORE_NICE_LOAD                    (1)
-#define DEF_TWO_PHASE_FREQ			(1000000)
-#define DEF_TWO_PHASE_BOTTOM_FREQ   (340000)
-#define DEF_TWO_PHASE_GO_MAX_LOAD   (95)
-#define DEF_UX_LOADING              (30)
-#define DEF_UX_FREQ                 (0)
-#define DEF_UX_BOOST_THRESHOLD      (0)
-#define DEF_INPUT_BOOST_DURATION    (100000000)
+#define DEF_TWO_PHASE_FREQ                      (1000000)
+#define DEF_TWO_PHASE_BOTTOM_FREQ               (340000)
+#define DEF_TWO_PHASE_GO_MAX_LOAD               (95)
+#define DEF_UX_LOADING                          (30)
+#define DEF_UX_FREQ                             (0)
+#define DEF_UX_BOOST_THRESHOLD                  (0)
+#define DEF_INPUT_BOOST_DURATION                (100000000)
+#define MIN_SAMPLING_RATE_RATIO                 (2)
+#define LATENCY_MULTIPLIER                      (1000)
+#define MIN_LATENCY_MULTIPLIER                  (100)
+#define TRANSITION_LATENCY_LIMIT                (10 * 1000 * 1000)
 
 /*
  * The polling frequency of this governor depends on the capability of
@@ -78,14 +82,9 @@
  * this governor will not work.
  * All times here are in uS.
  */
-#define MIN_SAMPLING_RATE_RATIO			(2)
 
 static unsigned int min_sampling_rate;
 static unsigned int def_sampling_rate;
-
-#define LATENCY_MULTIPLIER			(1000)
-#define MIN_LATENCY_MULTIPLIER			(100)
-#define TRANSITION_LATENCY_LIMIT		(10 * 1000 * 1000)
 
 static void do_dbs_timer(struct work_struct *work);
 static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
