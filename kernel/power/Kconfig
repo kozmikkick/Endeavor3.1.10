@@ -320,3 +320,20 @@ config SUSPEND_TIME
 	  Prints the time spent in suspend in the kernel log, and
 	  keeps statistics on the time spent in suspend in
 	  /sys/kernel/debug/suspend_time
+
+menu "Kernel Scheduling Features"
+
+config GENTLE_FAIR_SLEEPERS
+	bool "GENTLE_FAIR_SLEEPERS"
+	help
+		Only give sleepers 50% of their service deficit. This allows
+		them to run sooner, but does not allow tons of sleepers to
+		rip the spread apart.
+
+config ARCH_POWER
+	bool "ARCH_POWER"
+	help
+		Use arch dependent cpu power functions
+
+
+endmenu

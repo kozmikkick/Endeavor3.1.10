@@ -3,8 +3,11 @@
  * them to run sooner, but does not allow tons of sleepers to
  * rip the spread apart.
  */
+#ifdef CONFIG_GENTLE_FAIR_SLEEPERS
+SCHED_FEAT(GENTLE_FAIR_SLEEPERS, 1)
+#else
 SCHED_FEAT(GENTLE_FAIR_SLEEPERS, 0)
-
+#endif
 /*
  * Place new tasks ahead so that they do not starve already running
  * tasks
@@ -47,7 +50,11 @@ SCHED_FEAT(CACHE_HOT_BUDDY, 1)
 /*
  * Use arch dependent cpu power functions
  */
+#ifdef CONFIG_ARCH_POWER
+SCHED_FEAT(ARCH_POWER, 1)
+#else
 SCHED_FEAT(ARCH_POWER, 0)
+#endif
 
 SCHED_FEAT(HRTICK, 0)
 SCHED_FEAT(DOUBLE_TICK, 0)
