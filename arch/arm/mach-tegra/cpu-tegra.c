@@ -411,26 +411,10 @@ static struct notifier_block tegra_cpu_edp_notifier = {
 	.notifier_call = tegra_cpu_edp_notify,
 };
 
-static unsigned long hboot_temp = 0;
-int __init HBoot_temperature_get(char *s){
-	int ret = strict_strtoul(s, 10, &hboot_temp);
-	if (ret < 0)
-		return -EINVAL;
-	return 0;
-}
-__setup("HBootTemp=", HBoot_temperature_get);
-
 static void tegra_cpu_edp_init(bool resume)
 {
-	unsigned int freq = 0;
 	tegra_get_system_edp_limits(&system_edp_limits);
 	tegra_get_cpu_edp_limits(&cpu_edp_limits, &cpu_edp_limits_size);
-
-	if(hboot_temp >= 75){
-		freq = 640000;
-		printk(KERN_INFO "[TMS] HBootTemp= %lu > 75 , set freq = %d \n", hboot_temp, freq);
-		htc_set_cpu_user_cap(freq);
-	}
 
 	if (!(cpu_edp_limits || system_edp_limits)) {
 		if (!resume)
