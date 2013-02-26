@@ -943,17 +943,6 @@ void release_screen_off_freq_lock(unsigned int capfreq )
 }
 EXPORT_SYMBOL_GPL(release_screen_off_freq_lock);
 
-void lock_screen_off_freq_lock()
-{
-    if (enter_early_suspend){
-//        perf_early_suspend = 0 ;
-        CAP_CPU_FREQ_TARGET = CAP_CPU_FREQ_MAX;
-        pm_qos_update_request(&cap_cpu_freq_req, (s32)CAP_CPU_FREQ_MAX);
-        pr_info("lock early suspend CPU cap\n");
-    }
-}
-EXPORT_SYMBOL_GPL(lock_screen_off_freq_lock);
-
 static int ril_boost;
 static int ril_boost_set(const char *arg, const struct kernel_param *kp)
 {
