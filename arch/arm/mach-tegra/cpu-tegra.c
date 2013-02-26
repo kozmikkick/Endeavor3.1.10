@@ -931,25 +931,6 @@ static struct cpufreq_driver tegra_cpufreq_driver = {
 	.attr		= tegra_cpufreq_attr,
 };
 
-static int ril_boost;
-static int ril_boost_set(const char *arg, const struct kernel_param *kp)
-{
-	return 0;
-}
-
-static int ril_boost_get(char *buffer, const struct kernel_param *kp)
-{
-	return param_get_uint(buffer, kp);
-}
-
-
-static struct kernel_param_ops ril_boost_ops = {
-	.set = ril_boost_set,
-	.get = ril_boost_get,
-};
-
-module_param_cb(ril_boost, &ril_boost_ops, &ril_boost, 0644);
-
 static int __init tegra_cpufreq_init(void)
 {
 	int ret = 0;
