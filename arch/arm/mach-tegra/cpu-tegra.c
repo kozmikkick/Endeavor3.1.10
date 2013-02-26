@@ -790,20 +790,11 @@ _out:
 	return ret;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static struct pm_qos_request_list cap_cpu_freq_req;
-#define CAP_CPU_FREQ_MAX 640000
-
-static int enter_early_suspend = 0;
-
 #ifdef CONFIG_TEGRA_CPU_AP33
 #define BOOST_CPU_FREQ_MIN 1500000
-static int CAP_CPU_FREQ_TARGET = 1500000;
 #else
 #define BOOST_CPU_FREQ_MIN 1700000
-static int CAP_CPU_FREQ_TARGET = 1700000;
 #endif
-#endif // CONFIG_HAS_EARLYSUSPEND
 
 static int tegra_pm_notify(struct notifier_block *nb, unsigned long event,
 	void *dummy)
