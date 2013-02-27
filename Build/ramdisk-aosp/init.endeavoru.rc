@@ -108,7 +108,6 @@ on boot
     write /sys/module/cpuidle/parameters/lp2_in_idle 0
     write /sys/kernel/debug/tegra_hotplug/max_cpus 4
     write /sys/module/cpu_tegra3/parameters/auto_hotplug 1
-    write /sys/module/cpu_tegra/parameters/cpu_user_cap 1500000
 
 # Interactive governor settings
     chown system system /sys/devices/system/cpu/cpufreq/interactive/boost_factor
