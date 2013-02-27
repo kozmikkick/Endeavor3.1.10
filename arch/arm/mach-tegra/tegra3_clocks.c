@@ -1733,12 +1733,10 @@ static int tegra3_pll_clk_set_rate(struct clk *c, unsigned long rate)
 	if (val == old_base)
 		return 0;
 
-	MF_DEBUG("00000000");
 	if (c->state == ON) {
 		tegra3_pll_clk_disable(c);
 		val &= ~(PLL_BASE_BYPASS | PLL_BASE_ENABLE);
 	}
-	MF_DEBUG("00000001");
 
 	unsigned long flags;
 	if (c->reg == 0xd0)
@@ -1747,7 +1745,6 @@ static int tegra3_pll_clk_set_rate(struct clk *c, unsigned long rate)
 	if (c->reg == 0xd0)
 		spin_unlock_irqrestore(&dc_spinlock_clk, flags);
 
-	MF_DEBUG("00000002");
 	if (c->flags & PLL_HAS_CPCON) {
 		val = clk_readl(c->reg + PLL_MISC(c));
 		val &= ~PLL_MISC_CPCON_MASK;
@@ -1767,7 +1764,6 @@ static int tegra3_pll_clk_set_rate(struct clk *c, unsigned long rate)
 	if (c->state == ON)
 		tegra3_pll_clk_enable(c);
 
-	MF_DEBUG("00000003");
 	return 0;
 }
 
@@ -4833,6 +4829,25 @@ static struct cpufreq_frequency_table freq_table_1p5GHz[] = {
 	{14, CPUFREQ_TABLE_END },
 };
 
+static struct cpufreq_frequency_table freq_table_1p6GHz[] = {
+	{ 0,   51000 },
+	{ 1,  102000 },
+	{ 2,  204000 },
+	{ 3,  340000 },
+	{ 4,  475000 },
+	{ 5,  640000 },
+	{ 6,  860000 },
+	{ 7, 1000000 },
+	{ 8, 1100000 },
+	{ 9, 1200000 },
+	{10, 1300000 },
+	{11, 1400000 },
+	{12, 1500000 },
+	{13, 1550000 },
+	{14, 1600000 },
+	{15, CPUFREQ_TABLE_END },
+};
+
 static struct cpufreq_frequency_table freq_table_1p7GHz[] = {
 	{ 0,   51000 },
 	{ 1,  102000 },
@@ -4854,11 +4869,12 @@ static struct cpufreq_frequency_table freq_table_1p7GHz[] = {
 
 static struct tegra_cpufreq_table_data cpufreq_tables[] = {
 	{ freq_table_300MHz, 0,  1 },
-	{ freq_table_1p0GHz, 2,  8 },
-	{ freq_table_1p3GHz, 2, 10 },
-	{ freq_table_1p4GHz, 2, 11 },
-	{ freq_table_1p5GHz, 2, 12 },
-	{ freq_table_1p7GHz, 2, 12 },
+	{ freq_table_1p0GHz, 1,  8 },
+	{ freq_table_1p3GHz, 1, 10 },
+	{ freq_table_1p4GHz, 1, 11 },
+	{ freq_table_1p5GHz, 1, 13 },
+	{ freq_table_1p6GHz, 1, 13 },
+	{ freq_table_1p7GHz, 1, 12 },
 };
 
 static int clip_cpu_rate_limits(
