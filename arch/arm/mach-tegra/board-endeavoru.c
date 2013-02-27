@@ -112,10 +112,6 @@ extern bool is_resume_from_deep_suspend(void);
 #include <media/rawchip/rawchip.h>
 #include <media/rawchip/Yushan_HTC_Functions.h>
 
-#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
-int set_two_phase_freq(int cpufreq);
-#endif
-
 static struct balanced_throttle throttle_list[] = {
 	{
 		.id = BALANCED_THROTTLE_ID_TJ,
@@ -2085,9 +2081,6 @@ static void __init endeavoru_init(void)
 	endeavoru_regulator_init();
 	ENDEAVORU_PROJECT_keys_init();
 	endeavoru_sdhci_init();
-#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
-        set_two_phase_freq(1000000);
-#endif
 #ifdef CONFIG_TEGRA_EDP_LIMITS
 	endeavoru_edp_init();
 #endif
