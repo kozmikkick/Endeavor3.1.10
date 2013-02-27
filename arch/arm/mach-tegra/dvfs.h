@@ -21,8 +21,8 @@
 #ifndef _TEGRA_DVFS_H_
 #define _TEGRA_DVFS_H_
 
-#define MAX_DVFS_FREQS	40
-#define DVFS_RAIL_STATS_TOP_BIN	42
+#define MAX_DVFS_FREQS	20
+#define DVFS_RAIL_STATS_TOP_BIN	40
 
 struct clk;
 struct dvfs_rail;
