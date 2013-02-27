@@ -61,7 +61,7 @@
 #define DEF_UI_COUNTER                          (5)
 #define DEF_IGNORE_NICE_LOAD                    (1)
 #define DEF_TWO_PHASE_FREQ                      (1000000)
-#define DEF_TWO_PHASE_BOTTOM_FREQ               (300000)
+#define DEF_TWO_PHASE_BOTTOM_FREQ               (340000)
 #define DEF_TWO_PHASE_GO_MAX_LOAD               (95)
 #define DEF_UX_LOADING                          (30)
 #define DEF_UX_FREQ                             (0)
@@ -465,7 +465,7 @@ static ssize_t store_two_phase_bottom_freq (
 }
 #endif
 
-static unsigned int Touch_poke_attr[4] = {1300000, 800000, 0, 0};
+static unsigned int Touch_poke_attr[4] = {1300000, 880000, 0, 0};
 static unsigned int Touch_poke_boost_duration_ms = 0;
 static unsigned long Touch_poke_boost_till_jiffies = 0;
 
