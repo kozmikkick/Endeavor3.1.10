@@ -3657,6 +3657,13 @@ static struct clk_pll_freq_table tegra_pll_x_freq_table[] = {
 	{ 19200000, 1600000000, 500,  6,  1, 8},
 	{ 26000000, 1600000000, 800,  13, 1, 8},
 
+	/* 1.55 GHz */
+	{ 12000000, 1550000000, 775,  6,  1, 8},
+	{ 13000000, 1550000000, 738,  7,  1, 8},	/* actual: 1599.0 MHz */
+	{ 16800000, 1550000000, 857,  8,  1, 8},	/* actual: 1599.7 MHz */
+	{ 19200000, 1550000000, 625,  7,  1, 8},
+	{ 26000000, 1550000000, 775,  13, 1, 8},
+
 	/* 1.5 GHz */
 	{ 12000000, 1500000000, 750,  6,  1, 8},
 	{ 13000000, 1500000000, 923,  8,  1, 8},	/* actual: 1499.8 MHz */
@@ -4829,6 +4836,24 @@ static struct cpufreq_frequency_table freq_table_1p5GHz[] = {
 	{14, CPUFREQ_TABLE_END },
 };
 
+static struct cpufreq_frequency_table freq_table_1p55GHz[] = {
+	{ 0,   51000 },
+	{ 1,  102000 },
+	{ 2,  204000 },
+	{ 3,  340000 },
+	{ 4,  475000 },
+	{ 5,  640000 },
+	{ 6,  860000 },
+	{ 7, 1000000 },
+	{ 8, 1100000 },
+	{ 9, 1200000 },
+	{10, 1300000 },
+	{11, 1400000 },
+	{12, 1500000 },
+	{13, 1550000 },
+	{14, CPUFREQ_TABLE_END },
+};
+
 static struct cpufreq_frequency_table freq_table_1p6GHz[] = {
 	{ 0,   51000 },
 	{ 1,  102000 },
@@ -4873,6 +4898,7 @@ static struct tegra_cpufreq_table_data cpufreq_tables[] = {
 	{ freq_table_1p3GHz, 1, 10 },
 	{ freq_table_1p4GHz, 1, 11 },
 	{ freq_table_1p5GHz, 1, 13 },
+	{ freq_table_1p55GHz, 1, 13 },
 	{ freq_table_1p6GHz, 1, 14 },
 	{ freq_table_1p7GHz, 1, 12 },
 };
