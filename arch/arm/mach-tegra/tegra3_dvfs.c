@@ -85,11 +85,6 @@ static int tegra3_get_core_floor_mv(int cpu_mv)
 		return 950;
 	if (cpu_mv < 1000)
 		return 1050;
-	if ((tegra_cpu_speedo_id() < 2) ||
-	    (tegra_cpu_speedo_id() == 4) ||
-	    (tegra_cpu_speedo_id() == 7) ||
-	    (tegra_cpu_speedo_id() == 8))
-		return 1200;
 	if (cpu_mv < 1100)
 		return 1200;
 	if (cpu_mv <= 1250)
