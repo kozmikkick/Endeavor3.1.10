@@ -39,8 +39,6 @@
 #include <linux/slab.h>
 #include <linux/kernel_stat.h>
 
-#include "../../arch/arm/mach-tegra/tegra_pmqos.h"
-
 /******************** Tunable parameters: ********************/
 
 /*
@@ -48,7 +46,7 @@
  * towards the ideal frequency and slower after it has passed it. Similarly,
  * lowering the frequency towards the ideal frequency is faster than below it.
  */
-#define DEFAULT_IDEAL_FREQ T3_LP_MAX_FREQ
+#define DEFAULT_IDEAL_FREQ 475000
 static unsigned int ideal_freq;
 
 /*
@@ -270,7 +268,7 @@ inline static unsigned int validate_freq(struct cpufreq_policy *policy, int freq
 
 
 /* We want all CPUs to do sampling nearly on same jiffy */
-static inline unsigned int get_timer_delay()
+static inline unsigned int get_timer_delay(void)
 {
 	unsigned int delay = usecs_to_jiffies(sampling_rate);
 
@@ -435,7 +433,6 @@ static void cpufreq_smartmax_freq_change(struct smartmax_info_s *this_smartmax)
 static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax)
 {
 	unsigned int cur;
-	unsigned int cpu = this_smartmax->cpu;
 	struct cpufreq_policy *policy = this_smartmax->cur_policy;
     cputime64_t now = ktime_to_ns (ktime_get ());	
     unsigned int max_load_freq;
@@ -614,7 +611,7 @@ static ssize_t store_debug_mask(struct kobject *kobj, struct attribute *attr, co
 
 static ssize_t show_up_rate_us(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", up_rate_us);
+	return sprintf(buf, "%u\n", up_rate_us);
 }
 
 static ssize_t store_up_rate_us(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
@@ -631,7 +628,7 @@ static ssize_t store_up_rate_us(struct kobject *kobj, struct attribute *attr, co
 
 static ssize_t show_down_rate_us(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", down_rate_us);
+	return sprintf(buf, "%u\n", down_rate_us);
 }
 
 static ssize_t store_down_rate_us(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
@@ -701,7 +698,7 @@ static ssize_t store_ramp_down_step(struct kobject *kobj, struct attribute *attr
 
 static ssize_t show_max_cpu_load(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", max_cpu_load);
+	return sprintf(buf, "%u\n", max_cpu_load);
 }
 
 static ssize_t store_max_cpu_load(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
@@ -718,7 +715,7 @@ static ssize_t store_max_cpu_load(struct kobject *kobj, struct attribute *attr, 
 
 static ssize_t show_min_cpu_load(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", min_cpu_load);
+	return sprintf(buf, "%u\n", min_cpu_load);
 }
 
 static ssize_t store_min_cpu_load(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
@@ -735,7 +732,7 @@ static ssize_t store_min_cpu_load(struct kobject *kobj, struct attribute *attr, 
 
 static ssize_t show_sampling_rate(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", sampling_rate);
+	return sprintf(buf, "%u\n", sampling_rate);
 }
 
 static ssize_t store_sampling_rate(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
@@ -773,7 +770,7 @@ static ssize_t store_touch_poke_freq(struct kobject *a, struct attribute *b,
 
 static ssize_t show_input_boost_duration(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", input_boost_duration);
+	return sprintf(buf, "%u\n", input_boost_duration);
 }
 
 static ssize_t store_input_boost_duration(
@@ -862,63 +859,6 @@ static ssize_t store_boost_duration(struct kobject *a, struct attribute *b,
 	return count;
 }
 
-static ssize_t show_io_is_busy(struct kobject *kobj, struct attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", io_is_busy);
-}
-
-static ssize_t store_io_is_busy(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-
-	if (input > 1)
-		input = 1;
-
-	if (input == io_is_busy) { /* nothing to do */
-		return count;
-	}		
-	io_is_busy = input;
-	
-	return count;
-}
-
-static ssize_t show_ignore_nice(struct kobject *kobj, struct attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", ignore_nice);
-}
-
-static ssize_t store_ignore_nice(struct kobject *a, struct attribute *b,
-				      const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-
-	unsigned int j;
-
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-
-	if (input > 1)
-		input = 1;
-
-	if (input == ignore_nice) { /* nothing to do */
-		return count;
-	}
-	ignore_nice = input;
-
-	/* we need to re-evaluate prev_cpu_idle */
-    update_idle_time(true);
-
-	return count;
-}
-
 #define define_global_rw_attr(_name)		\
 static struct global_attr _name##_attr =	\
 	__ATTR(_name, 0644, show_##_name, store_##_name)
@@ -937,8 +877,6 @@ define_global_rw_attr(input_boost_duration);
 define_global_rw_attr(sync_cpu_downscale);
 define_global_rw_attr(boost_freq);
 define_global_rw_attr(boost_duration);
-define_global_rw_attr(io_is_busy);
-define_global_rw_attr(ignore_nice);
 
 static struct attribute * smartmax_attributes[] = {
 	&debug_mask_attr.attr,
