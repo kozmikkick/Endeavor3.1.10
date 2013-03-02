@@ -179,7 +179,7 @@ struct suspend_context tegra_sctx;
 #define MC_SECURITY_SIZE	0x70
 #define MC_SECURITY_CFG2	0x7c
 
-#define AWAKE_CPU_FREQ_MIN	51000
+#define AWAKE_CPU_FREQ_MIN	25500
 static struct pm_qos_request_list awake_cpu_freq_req;
 
 /*
