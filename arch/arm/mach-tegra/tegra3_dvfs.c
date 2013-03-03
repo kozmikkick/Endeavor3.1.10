@@ -619,11 +619,7 @@ static int __init get_core_nominal_mv_index(int speedo_id)
 {
 	int i;
 	int mv = tegra_core_speedo_mv();
-#if 0	/* fixme: hard code to let CPU voltage can be no limited */
 	int core_edp_limit = get_core_edp();
-#else
-	int core_edp_limit = 0;
-#endif
 
 	/*
 	 * Start with nominal level for the chips with this speedo_id. Then,
