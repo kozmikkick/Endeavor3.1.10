@@ -32,8 +32,7 @@
 /* in 10 MHz
  * this effectively makes all tablets 1600Mhz capable, but is limited by
  * the clock definitions in tegra_dvfs.c */
-#define T3_VARIANT_BOOSTX       30
-#define T3_VARIANT_BOOST0       20
+#define T3_EDP_BOOST       30
 
 extern unsigned int tegra_pmqos_boost_freq;
 extern unsigned int tegra_pmqos_cap_freq;
