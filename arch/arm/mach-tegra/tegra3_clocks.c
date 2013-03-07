@@ -4861,7 +4861,31 @@ static struct cpufreq_frequency_table freq_table_1p6GHz[] = {
 	{17, 1500000 },
 	{18, 1550000 },
 	{19, 1600000 },
-	{20, 1650000 },
+	{20, CPUFREQ_TABLE_END },
+};
+
+static struct cpufreq_frequency_table freq_table_1p624GHz[] = {
+	{ 0,   25500 },
+	{ 1,   51000 },
+	{ 2,  102000 },
+	{ 3,  204000 },
+	{ 4,  340000 },
+	{ 5,  475000 },
+	{ 6,  640000 },
+	{ 7,  760000 },
+	{ 8,  860000 },
+	{ 9,  910000 },
+	{10, 1000000 },
+	{11, 1050000 },
+	{12, 1100000 },
+	{13, 1150000 },
+	{14, 1200000 },
+	{15, 1300000 },
+	{16, 1400000 },
+	{17, 1500000 },
+	{18, 1550000 },
+	{19, 1600000 },
+	{20, 1624000 },
 	{21, CPUFREQ_TABLE_END },
 };
 
@@ -4897,7 +4921,8 @@ static struct tegra_cpufreq_table_data cpufreq_tables[] = {
 	{ freq_table_1p3GHz, 1, 12 },
 	{ freq_table_1p4GHz, 1, 13 },
 	{ freq_table_1p5GHz, 1, 14 },
-	{ freq_table_1p6GHz, 1, 20 },
+	{ freq_table_1p6GHz, 1, 19 },
+	{ freq_table_1p624GHz, 1, 20 },
 	{ freq_table_1p7GHz, 1, 21 },
 };
 
