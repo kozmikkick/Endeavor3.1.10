@@ -2,7 +2,7 @@
 #define COMPAT_AUTOCONF_INCLUDED
 /*
  * Automatically generated C config: don't edit
- * 五  1月 25 14:23:52 CST 2013 
+ * 三  2月 13 17:28:32 CST 2013 
  * compat-wireless-2.6: ol_R5.00.14
  * linux-2.6: ol_R5.00.21-23-g618c7e5
  */
@@ -735,11 +735,4 @@
 #define CONFIG_RFKILL_BACKPORT_INPUT 1
 #endif /* CONFIG_RFKILL_BACKPORT_INPUT */ 
 #endif /* CONFIG_COMPAT_KERNEL_2_6_31 */
-#ifdef CONFIG_NET_SCHED
-#ifdef CONFIG_NETDEVICES_MULTIQUEUE
-#ifndef CONFIG_MAC80211_QOS
-#define CONFIG_MAC80211_QOS 1
-#endif /* CONFIG_MAC80211_QOS */ 
-#endif
-#endif
 #endif /* COMPAT_AUTOCONF_INCLUDED */
