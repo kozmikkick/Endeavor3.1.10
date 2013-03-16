@@ -886,7 +886,7 @@ static void led_powerkey_work_func(struct work_struct *work)
 
 	I(" %s +++\n" , __func__);
 	pdata = client->dev.platform_data;
-	if( current_mode == 0  )
+	if (current_mode == 0 && backlight_mode == 0)
 		lp5521_led_enable(client);
 	mutex_lock(&led_mutex);
 	I("%s, backlight_mode: %d\n", __func__, backlight_mode);
@@ -1344,7 +1344,7 @@ static ssize_t lp5521_led_currents_store(struct device *dev,
 
 	sscanf(buf, "%d", &val);
 	I(" %s , val = %d\n" , __func__, val);
-	if (val < 0 || val > 255)
+	if (val < 0 || val > 3)
 		return -EINVAL;
 	current_currents = val;
 	led_cdev = (struct led_classdev *)dev_get_drvdata(dev);
@@ -1360,11 +1360,14 @@ static ssize_t lp5521_led_currents_store(struct device *dev,
 	udelay(500);
 	/* === set pwm to all === */
 	data = (u8)val;
-	if(!strcmp(ldata->cdev.name, "green"))	 {
+	// maxwen TODO disable green and amber currents
+	// interface - writing e.g. 255 to it will create
+	// an extreme bright led
+	/*if(!strcmp(ldata->cdev.name, "green"))	 {
 		ret = i2c_write_block(client, 0x06, &data, 1);
 	} else if (!strcmp(ldata->cdev.name, "amber")) {
 		ret = i2c_write_block(client, 0x05, &data, 1);
-	} else if (!strcmp(ldata->cdev.name, "button-backlight")) {
+	} else*/ if (!strcmp(ldata->cdev.name, "button-backlight")) {
 		ret = i2c_write_block(client, 0x07, &data, 1);
 	}
 	mutex_unlock(&led_mutex);
@@ -1656,6 +1659,7 @@ static int lp5521_led_probe(struct i2c_client *client
 	}
 	INIT_WORK(&led_powerkey_work, led_powerkey_work_func);
 	INIT_WORK((struct work_struct *) &button_fade_work, button_fade_work_func);
+
 	/* === create device node === */
 	ret = device_create_file(&client->dev, &dev_attr_behavior);
 	if (ret) {
