@@ -869,19 +869,15 @@ static void __init endeavoru_uart_init(void)
 	}
 	endeavoru_uart_pdata.parent_clk_list = uart_parent_clk;
 	endeavoru_uart_pdata.parent_clk_count = ARRAY_SIZE(uart_parent_clk);
-
-/* GPS use UARTE
 	endeavoru_loopback_uart_pdata.parent_clk_list = uart_parent_clk;
-	endeavoru_loopback_uart_pdata.parent_clk_count =
-						ARRAY_SIZE(uart_parent_clk);
+	endeavoru_loopback_uart_pdata.parent_clk_count = ARRAY_SIZE(uart_parent_clk);
 	endeavoru_loopback_uart_pdata.is_loopback = true;
-*/
 
 	tegra_uarta_device.dev.platform_data = &endeavoru_uart_pdata;
 	tegra_uartb_device.dev.platform_data = &endeavoru_uart_pdata;
 	tegra_uartc_device.dev.platform_data = &endeavoru_uart_pdata;
 	tegra_uartd_device.dev.platform_data = &endeavoru_uart_pdata;
-	tegra_uarte_device.dev.platform_data = &endeavoru_uart_pdata; // Used for BRCM GPS.
+	//tegra_uarte_device.dev.platform_data = &endeavoru_uart_pdata; // Used for BRCM GPS.
 
 #ifdef CONFIG_BT_CTS_WAKEUP
 	int board_id = htc_get_pcbid_info();
@@ -908,10 +904,10 @@ static void __init endeavoru_uart_init(void)
 	tegra_uartc_device.name = "tegra_uart_brcm"; /* for brcm */
 #endif
 
-/* GPS uses UARTE
+
 	// UARTE is used for loopback test purpose
 	tegra_uarte_device.dev.platform_data = &endeavoru_loopback_uart_pdata;
-*/
+
 
 	/* Register low speed only if it is selected */
 	if (!is_tegra_debug_uartport_hs())
@@ -2208,7 +2204,7 @@ static void __init endeavoru_init(void)
 		sysfs_create_group(properties_kobj, &Aproj_properties_attr_group_XC);
 	}
 	endeavoru_audio_init();
-	//endeavoru_gps_init();
+	endeavoru_gps_init();
 	endeavoru_baseband_init();
 	endeavor_panel_init();
 	endeavoru_emc_init();
