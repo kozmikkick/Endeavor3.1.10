@@ -591,6 +591,25 @@ static void lp5521_dual_color_blink(struct i2c_client *client)
 	I(" %s ---\n" , __func__);
 }
 
+static inline int button_brightness_adjust(struct i2c_client *client) {
+	uint8_t data = 0x00;
+	int ret, brightness;
+	I("%s, current_mode: %d, backlight_mode: %d", __func__, current_mode, backlight_mode);
+
+	if (current_mode == 0 && backlight_mode == 0)
+		lp5521_led_enable(client);
+	brightness = button_brightness;
+	backlight_mode = 1;
+	mutex_lock(&led_mutex);
+	I("locked %s", __func__);
+
+	data = (u8)brightness;
+	ret = i2c_write_block(client, 0x04, &data, 1);
+
+	mutex_unlock(&led_mutex);
+	return ret;
+}
+
 static inline int button_fade_in(struct i2c_client *client) {
 	uint8_t data = 0x00;
 	int i, ret, brightness;
@@ -1246,7 +1265,7 @@ static ssize_t lp5521_led_blink_store(struct device *dev,
 		if(!strcmp(ldata->cdev.name, "green"))	 {
 			if( (current_mode == 4 || amber_mode == 2) && val == 3 )
 				lp5521_dual_color_blink(client);
-			else 
+			else
 				lp5521_green_blink(client);
 		} else if (!strcmp(ldata->cdev.name, "amber")) {
 			if( val == 4 )
@@ -1346,6 +1365,7 @@ static ssize_t lp5521_led_currents_store(struct device *dev,
 	I(" %s , val = %d\n" , __func__, val);
 	if (val < 0 || val > 3)
 		return -EINVAL;
+		
 	current_currents = val;
 	led_cdev = (struct led_classdev *)dev_get_drvdata(dev);
 	ldata = container_of(led_cdev, struct lp5521_led, cdev);
@@ -1505,15 +1525,20 @@ static ssize_t lp5521_led_button_brightness_store(struct device *dev,
 				   struct device_attribute *attr,
 				   const char *buf, size_t count)
 {
+	struct i2c_client *client = private_lp5521_client;
+
 	sscanf(buf, "%d", &button_brightness);
 	if (button_brightness < 0) button_brightness=0;
 	if (button_brightness > 255) button_brightness=255;
+
+	button_brightness_adjust(client);
 
 	return count;
 }
 
 static DEVICE_ATTR(button_brightness, 0644, lp5521_led_button_brightness_show,
 					lp5521_led_button_brightness_store);
+
 
 static void lp5521_led_early_suspend(struct early_suspend *handler)
 {
@@ -1627,11 +1652,6 @@ static int lp5521_led_probe(struct i2c_client *client
 			goto err_register_attr_auto_bln;
 		}
 #endif
-		ret = device_create_file(cdata->leds[i].cdev.dev, &dev_attr_button_brightness);
-		if (ret < 0) {
-			pr_err("%s: failed on create attr button_brightness [%d]\n", __func__, i);
-			goto err_register_attr_button_brightness;
-		}
 		ret = device_create_file(cdata->leds[i].cdev.dev, &dev_attr_off_timer);
 		if (ret < 0) {
 			pr_err("%s: failed on create attr off_timer [%d]\n", __func__, i);
@@ -1651,6 +1671,11 @@ static int lp5521_led_probe(struct i2c_client *client
 		if (ret < 0) {
 			pr_err("%s: failed on create attr lut_coefficient [%d]\n", __func__, i);
 			goto err_register_attr_lut_coefficient;
+		}
+		ret = device_create_file(cdata->leds[i].cdev.dev, &dev_attr_button_brightness);
+		if (ret < 0) {
+			pr_err("%s: failed on create attr button_brightness [%d]\n", __func__, i);
+			goto err_register_attr_button_brightness;
 		}
 		INIT_WORK(&cdata->leds[i].led_work, led_work_func);
 		alarm_init(&cdata->leds[i].led_alarm,
@@ -1691,6 +1716,10 @@ static int lp5521_led_probe(struct i2c_client *client
 err_fun_init:
 	device_remove_file(&client->dev, &dev_attr_behavior);
 	kfree(cdata);
+err_register_attr_button_brightness:
+	for (i = 0; i < pdata->num_leds; i++) {
+		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_button_brightness);
+	}
 err_register_attr_lut_coefficient:
 	for (i = 0; i < pdata->num_leds; i++) {
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_lut_coefficient);
@@ -1717,10 +1746,6 @@ err_register_attr_auto_bln:
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_auto_bln);
 	}
 #endif
-err_register_attr_button_brightness:
-	for (i = 0; i < pdata->num_leds; i++) {
-		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_button_brightness);
-	}
 err_register_attr_blink:
 	for (i = 0; i < pdata->num_leds; i++) {
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_blink);
@@ -1756,11 +1781,11 @@ static int __devexit lp5521_led_remove(struct i2c_client *client)
 #ifdef CONFIG_BUILD_FOR_SENSE
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_auto_bln);
 #endif
-		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_button_brightness);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_off_timer);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_currents);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_pwm_coefficient);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_lut_coefficient);
+		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_button_brightness);
 		led_classdev_unregister(&cdata->leds[i].cdev);
 	}
 	destroy_workqueue(g_led_work_queue);
