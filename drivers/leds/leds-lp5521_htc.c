@@ -49,6 +49,7 @@ static int amber_mode, button_brightness, slow_blink_brightness;
 #ifdef CONFIG_BUILD_FOR_SENSE
 static int auto_bln = 1;
 #endif
+static int button_brightness_board;
 static struct regulator *regulator;
 static struct i2c_client *private_lp5521_client;
 static struct mutex	led_mutex;
@@ -1320,7 +1321,8 @@ static ssize_t lp5521_led_slow_blink_store(struct device *dev,
 	if(val) {
 		if(!strcmp(ldata->cdev.name, "button-backlight")) {
 			if(backlight_mode != 3 || val != slow_blink_brightness) {
-				slow_blink_brightness = val;
+				// always limit it to any button brightness value
+				slow_blink_brightness = button_brightness;
 				lp5521_led_current_set_for_key(2);
 			}
 		}
@@ -1535,7 +1537,11 @@ static ssize_t lp5521_led_button_brightness_store(struct device *dev,
 
 	D("%s , val = %d\n" , __func__, temp);
 	
-	button_brightness = temp;
+	// 0 will reset it to the boards default value
+	if (temp == 0)
+		button_brightness = button_brightness_board;
+	else
+		button_brightness = temp;
 	
 	button_brightness_adjust(client);
 
@@ -1622,6 +1628,7 @@ static int lp5521_led_probe(struct i2c_client *client
 	}
    	tegra_gpio_enable(pdata->ena_gpio);
 	button_brightness = pdata->led_config[2].led_lux * 255 / 100;
+	button_brightness_board = button_brightness;
 	slow_blink_brightness = 0;
 
 	private_lp5521_client = client;
