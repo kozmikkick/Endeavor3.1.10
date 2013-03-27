@@ -38,34 +38,13 @@ export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
 make -j4 kozmik_auto_hotplug_defconfig
 make -j4
 
-# Back up files to be changed upon compiling wifi modules (keeps it from tracking on github)
-cp drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h Build/compat_autoconf.h
-cp drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers Build/Module.symvers
-
-# compile the wireless modules
-make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` clean -j4
-make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` -j4
-
-# revert changes necessary to compiling back after compiling (keeps it from tracking on github)
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
-cp Build/compat_autoconf.h drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
-cp Build/Module.symvers drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/modules
-rm -fR ./Build/compat_autoconf.h
-rm -fR ./Build/Module.symvers
-
 # copy modules
 find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find crypto -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find drivers -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find fs -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find ipc -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
-mkdir ./Build/KozmiKKernel/net
-find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/net \;
-rm -fR ./Build/KozmiKKernel/net/cfg80211.ko
-find Build/KozmiKKernel/net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
-rm -fR ./Build/KozmiKKernel/net
+find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 
 ####Building sense boot.img Start####
 cd Build
@@ -131,34 +110,13 @@ export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
 make -j4 kozmik_cpuquiet_defconfig
 make -j4
 
-# Back up files to be changed upon compiling wifi modules (keeps it from tracking on github)
-cp drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h Build/compat_autoconf.h
-cp drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers Build/Module.symvers
-
-# compile the wireless modules
-make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` clean -j4
-make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` -j4
-
-# revert changes necessary to compiling back after compiling (keeps it from tracking on github)
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
-cp Build/compat_autoconf.h drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
-cp Build/Module.symvers drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/modules
-rm -fR ./Build/compat_autoconf.h
-rm -fR ./Build/Module.symvers
-
 # copy modules
 find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find crypto -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find drivers -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find fs -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find ipc -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
-mkdir ./Build/KozmiKKernel/net
-find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/net \;
-rm -fR ./Build/KozmiKKernel/net/cfg80211.ko
-find Build/KozmiKKernel/net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
-rm -fR ./Build/KozmiKKernel/net
+find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 
 ####Building sense boot.img Start####
 cd Build
@@ -224,34 +182,13 @@ export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
 make -j4 kozmik_mpdecision_defconfig
 make -j4
 
-# Back up files to be changed upon compiling wifi modules (keeps it from tracking on github)
-cp drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h Build/compat_autoconf.h
-cp drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers Build/Module.symvers
-
-# compile the wireless modules
-make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` clean -j4
-make -C drivers/net/wireless/compat-wireless_R5.SP2.03 KLIB=`pwd` KLIB_BUILD=`pwd` -j4
-
-# revert changes necessary to compiling back after compiling (keeps it from tracking on github)
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
-cp Build/compat_autoconf.h drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
-cp Build/Module.symvers drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
-rm -fR ./drivers/net/wireless/compat-wireless_R5.SP2.03/modules
-rm -fR ./Build/compat_autoconf.h
-rm -fR ./Build/Module.symvers
-
 # copy modules
 find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find crypto -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find drivers -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find fs -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 find ipc -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
-mkdir ./Build/KozmiKKernel/net
-find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/net \;
-rm -fR ./Build/KozmiKKernel/net/cfg80211.ko
-find Build/KozmiKKernel/net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
-rm -fR ./Build/KozmiKKernel/net
+find net -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
 
 ####Building sense boot.img Start####
 cd Build
