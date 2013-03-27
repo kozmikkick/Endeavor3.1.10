@@ -1,20 +1,18 @@
 # Copyright (C) 2012 The Android Open Source Project
-#
-# IMPORTANT: Do not create world writable files or directories.
-# This is a common source of Android security bugs.
-#
+# IMPORTANT: Do not create world writable files or directories
+# This is a common source of Android security bugs
 
 import /init.${ro.hardware}.rc
 import /init.usb.rc
 import /init.trace.rc
 
 on early-init
-    # Set init and its forked children's oom_adj.
+    # Set init and its forked children's oom_adj
     write /proc/1/oom_adj -16
 
     start ueventd
 
-# create mountpoints
+# Create mountpoints
     mkdir /mnt 0775 root system
 
 on init
@@ -23,7 +21,7 @@ sysclktz 0
 
 loglevel 3
 
-# setup the global environment
+# Setup the global environment
     export PATH /sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
     export LD_LIBRARY_PATH /vendor/lib:/system/lib
     export ANDROID_BOOTLOGO 1
@@ -38,8 +36,7 @@ loglevel 3
     symlink /system/etc /etc
     symlink /sys/kernel/debug /d
 
-# Right now vendor lives on the same filesystem as system,
-# but someday that may change.
+# Right now vendor lives on the same filesystem as system, but someday that may change
     symlink /system/vendor /vendor
 
 # Create cgroup mount point for cpu accounting
@@ -52,7 +49,7 @@ loglevel 3
     mkdir /cache 0770 system cache
     mkdir /config 0500 root root
 
-    # Directory for putting things only root should see.
+    # Directory for putting things only root should see
     mkdir /mnt/secure 0700 root root
 
     # Directory for staging bindmounts
@@ -62,11 +59,11 @@ loglevel 3
     # imagefile directory will be bind-mounted
     mkdir /mnt/secure/asec  0700 root root
 
-    # Secure container public mount points.
+    # Secure container public mount points
     mkdir /mnt/asec  0700 root system
     mount tmpfs tmpfs /mnt/asec mode=0755,gid=1000
 
-    # Filesystem image public mount points.
+    # Filesystem image public mount points
     mkdir /mnt/obb 0700 root system
     mount tmpfs tmpfs /mnt/obb mode=0755,gid=1000
 
@@ -89,7 +86,7 @@ loglevel 3
 # connection tracking to treat them as INVALID packet
     write /proc/sys/net/netfilter/nf_conntrack_tcp_be_liberal 1
 
-# Wifi: Disable the IPv6 of p2p0 interface
+# WiFi: Disable the IPv6 of p2p0 interface
     write /proc/sys/net/ipv6/conf/p2p0/disable_ipv6 1
 
 # Create cgroup mount points for process groups
@@ -116,16 +113,16 @@ loglevel 3
     write /dev/cpuctl/apps/bg_non_interactive/cpu.rt_runtime_us 700000
     write /dev/cpuctl/apps/bg_non_interactive/cpu.rt_period_us 1000000
 
-# Allow everybody to read the xt_qtaguid resource tracking misc dev.
-# This is needed by any process that uses socket tagging.
+# Allow everybody to read the xt_qtaguid resource tracking misc dev
+# This is needed by any process that uses socket tagging
     chmod 0644 /dev/xt_qtaguid
 
-# change mode & owner of HTC Debug Driver node
-	chmod 0664 /proc/driver/hdf
-	chown root system /proc/driver/hdf
+# Change mode & owner of HTC Debug Driver node
+    chmod 0664 /proc/driver/hdf
+    chown root system /proc/driver/hdf
 
 on fs
-# mount mtd partitions
+# Mount mtd partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint
     mount yaffs2 mtd@system /system
     mount yaffs2 mtd@system /system ro remount
@@ -133,7 +130,7 @@ on fs
     mount yaffs2 mtd@cache /cache nosuid nodev
 
 on post-fs
-    # once everything is setup, no need to modify /
+    # Once everything is setup, no need to modify /
     mount rootfs rootfs / ro remount
 
     # We chown/chmod /cache again so because mount is run as root + defaults
@@ -144,17 +141,17 @@ on post-fs
     chown system cache /cache/recovery
     chmod 0770 /cache/recovery
 
-    #change permissions on vmallocinfo so we can grab it from bugreports
+    # Change permissions on vmallocinfo so we can grab it from bugreports
     chown root log /proc/vmallocinfo
     chmod 0440 /proc/vmallocinfo
 
-    #change permissions on kmsg & sysrq-trigger so bugreports can grab kthread stacks
+    # Change permissions on kmsg & sysrq-trigger so bugreports can grab kthread stacks
     chown root system /proc/kmsg
     chmod 0440 /proc/kmsg
     chown root system /proc/sysrq-trigger
     chmod 0220 /proc/sysrq-trigger
 
-    # create the lost+found directories, so as to enforce our permissions
+    # Create the lost+found directories, so as to enforce our permissions
     mkdir /cache/lost+found 0770 root root
 
 on post-fs-data
@@ -162,12 +159,12 @@ on post-fs-data
     chown system system /data
     chmod 0771 /data
 
-    # create htcfs
+    # Create htcfs
     mkdir /data/htcfs 0777 root root
 
-    # Create dump dir and collect dumps.
+    # Create dump dir and collect dumps
     # Do this before we mount cache so eventually we can use cache for
-    # storing dumps on platforms which do not have a dedicated dump partition.
+    # storing dumps on platforms which do not have a dedicated dump partition
     mkdir /data/dontpanic 0750 root log
 
     # Collect apanic data, free resources and re-arm trigger
@@ -181,7 +178,7 @@ on post-fs-data
 
     write /proc/apanic_console 1
 
-    # create basic filesystem structure
+    # Create basic filesystem structure
     mkdir /data/misc 01771 system misc
     mkdir /data/misc/bluetoothd 0770 bluetooth bluetooth
     mkdir /data/misc/bluetooth 0770 system system
@@ -189,12 +186,12 @@ on post-fs-data
     mkdir /data/misc/keychain 0771 system system
     mkdir /data/misc/vpn 0770 system vpn
     mkdir /data/misc/systemkeys 0700 system system
-    # give system access to wpa_supplicant.conf for backup and restore
+    # Give system access to wpa_supplicant.conf for backup and restore
     mkdir /data/misc/wifi 0770 wifi wifi
     chmod 0660 /data/misc/wifi/wpa_supplicant.conf
     mkdir /data/local 0751 root root
 
-    # For security reasons, /data/local/tmp should always be empty.
+    # For security reasons, /data/local/tmp should always be empty
     # Do not place files or directories in /data/local/tmp
     mkdir /data/local/tmp 0771 shell shell
     mkdir /data/data 0771 system system
@@ -205,26 +202,25 @@ on post-fs-data
     mkdir /data/ssh 0750 root shell
     mkdir /data/ssh/empty 0700 root root
 
-    # create dalvik-cache, so as to enforce our permissions
+    # Create dalvik-cache, so as to enforce our permissions
     mkdir /data/dalvik-cache 0771 system system
 
-    # create resource-cache and double-check the perms
+    # Create resource-cache and double-check the perms
     mkdir /data/resource-cache 0771 system system
     chown system system /data/resource-cache
     chmod 0771 /data/resource-cache
 
-    # create the lost+found directories, so as to enforce our permissions
+    # Create the lost+found directories, so as to enforce our permissions
     mkdir /data/lost+found 0770 root root
 
-    # create directory for DRM plug-ins - give drm the read/write access to
-    # the following directory.
+    # Create directory for DRM plug-ins - give drm the read/write access to the following directory
     mkdir /data/drm 0770 drm drm
 
     # HTC add: temp change settings db file access right while boot-up for bootanimation to access
     chmod 0660 /data/data/com.android.providers.settings/databases/settings.db-wal
     chmod 0660 /data/data/com.android.providers.settings/databases/settings.db-shm
     chmod 0660 /data/data/com.android.providers.settings/databases/settings.db-journal
-    # HTC add: for customization wizard folder#
+    # HTC add: for customization wizard folder
     mkdir /data/data/cw 0770 root cw_access
     mkdir /data/data/cwtemp 0770 root cw_access
 
@@ -239,18 +235,12 @@ on post-fs-data
     chown root recvy_access /data/data/recovery
     chmod 0775 /data/data/recovery
 
-    # If there is no fs-post-data action in the init.<device>.rc file, you
-    # must uncomment this line, otherwise encrypted filesystems
-    # won't work.
-    # Set indication (checked by vold) that we have finished this action
-    #setprop vold.post_fs_data_done 1
-    
-#+SSD_RIL: from Qualcomm socket path
+# +SSD_RIL: from Qualcomm socket path
     mkdir /dev/socket/qmux_radio 0770 radio radio
     mkdir /dev/socket/qmux_audio 0770 audio audio
     mkdir /dev/socket/qmux_bluetooth 0770 bluetooth bluetooth
     mkdir /dev/socket/qmux_gps 0770 gps gps
-#-SSD_RIL: from Qualcomm socket path
+# -SSD_RIL: from Qualcomm socket path
 
 #+SSD_AUD: soundhound dump pcm
     mkdir /data/audio 0775 media audio
@@ -258,17 +248,17 @@ on post-fs-data
 #-SSD_AUD: soundhound dump pcm
 
 on boot
-# basic network init
+# Basic network init
     ifup lo
     hostname localhost
     domainname localdomain
 
-# set RLIMIT_NICE to allow priorities from 19 to -20
+# Set RLIMIT_NICE to allow priorities from 19 to -20
     setrlimit 13 40 40
 
-# Memory management.  Basic kernel parameters, and allow the high
+# Memory management. Basic kernel parameters, and allow the high
 # level system server to be able to adjust the kernel OOM driver
-# parameters to match how it is managing things.
+# parameters to match how it is managing things
     write /proc/sys/vm/overcommit_memory 1
     write /proc/sys/vm/min_free_order_shift 4
     chown root system /sys/module/lowmemorykiller/parameters/adj
@@ -281,7 +271,7 @@ on boot
     write /proc/sys/vm/dirty_background_bytes 1024000
     write /proc/sys/vm/dirty_bytes 10240000
 
-    # Permissions for System Server and daemons.
+    # Permissions for System Server and daemons
     chown radio system /sys/android_power/state
     chown radio system /sys/android_power/request_state
     chown radio system /sys/android_power/acquire_full_wake_lock
@@ -357,7 +347,7 @@ on boot
     chown system system /sys/class/android_usb/f_rmnet/on
     chown system system /sys/devices/platform/android_usb/usb_disable
 
-#set diag permissions
+# Set diag permissions
     chown radio radio /dev/diag
     chown radio radio /dev/diag_mdm
     chown radio radio /dev/htcdiag
@@ -383,8 +373,6 @@ on boot
 
 # Set this property so surfaceflinger is not started by system_init
     setprop system_init.startsurfaceflinger 0
-
-    start sysinit
 
     class_start core
     class_start main
@@ -420,8 +408,7 @@ on property:vold.decrypt=trigger_shutdown_framework
     class_reset late_start
     class_reset main
 
-## Daemon processes to be run by init.
-##
+# Daemon processes to be run by init
 service ueventd /sbin/ueventd
     class core
     critical
@@ -448,7 +435,7 @@ on property:ro.kernel.qemu=1
 
 service sfc /sbin/sfc
     class core
-	oneshot
+    oneshot
 
 service servicemanager /system/bin/servicemanager
     class core
@@ -480,7 +467,6 @@ service gsm0710mux /system/bin/gsm0710muxd -s /dev/ttyACM0 -v 5 -n 8 -m basic
     class core
     user radio
     group radio cache inet misc
-#    oneshot
     disabled
 
 service nvm-server /system/bin/nvm_server
@@ -493,11 +479,10 @@ service nvm-server /system/bin/nvm_server
 
 service modem-daemon /system/bin/modemd
 
-#Sophia-0410
+# Sophia-0410
 service kickstart /system/bin/qcks -1 modem_st1 -2 modem_st2 -3 mdm9k_config -i /firmware/mdm/image/ -u
     class core
     oneshot
-
 
 service ril-daemon /system/bin/rild
     class core
@@ -535,10 +520,12 @@ service drm /system/bin/drmserver
     class main
     user drm
     group drm system inet drmrpc sdcard_r
-
-service sysinit /system/bin/logwrapper /system/xbin/busybox run-parts /system/etc/init.d
-    disabled
+	
+service userinit /system/xbin/busybox run-parts /system/etc/init.d
     oneshot
+    class late_start
+    user root
+    group root
 
 service media /system/bin/mediaserver
     class main
@@ -573,11 +560,11 @@ service installd /system/bin/installd
     cgroup bg
     socket installd stream 600 system system
 
-
 service racoon /system/bin/racoon
     class main
     socket racoon stream 600 system system
-    # IKE uses UDP port 500. Racoon will setuid to vpn after binding the port.
+    # IKE uses UDP port 500
+    # Racoon will setuid to vpn after binding the port
     group vpn net_admin inet
     disabled
     oneshot
@@ -595,6 +582,20 @@ service keystore /system/bin/keystore /data/misc/keystore
     user keystore
     group keystore drmrpc
     socket keystore stream 666
+
+service dumpstate /system/bin/dumpstate -s
+    class main
+    socket dumpstate stream 0660 shell log
+    disabled
+    oneshot
+
+service htc_dk /system/bin/dumpstate -s -k -a
+    class main
+    socket htc_dk stream 0660 shell log
+
+service htc_dlk /system/bin/dumpstate -s -l -a
+    class main
+    socket htc_dlk stream 0660 shell log
 
 service sshd /system/bin/start-ssh
     class main
@@ -615,28 +616,26 @@ service hs_uart /system/bin/hs_uart
     group system misc input
     oneshot
 
-#HTC_WIFI_START
+# HTC_WIFI_START
 service L2PE /system/bin/l2_profile_exchange handset wlan1
     user root
     group root
     disabled
     oneshot
-#HTC_WIFI_END
+# HTC_WIFI_END
 
-#bluetooth power up/down interface
+# Bluetooth power up/down interface
     chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
     chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
     chmod 0660                /sys/class/rfkill/rfkill0/state
 
-# bluetooth
+# Bluetooth
     # UART device
     chmod 0660 /dev/ttyHS2
     chown bluetooth bluetooth /dev/ttyHS2
 
-    # power up/down interface
+    # Power up/down interface
     chmod 0660 /sys/class/rfkill/rfkill0/state
     chmod 0660 /sys/class/rfkill/rfkill0/type
     chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
     chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
-
-
