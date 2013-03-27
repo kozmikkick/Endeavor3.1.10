@@ -67,7 +67,7 @@ static struct wifi_platform_data endeavor_wifi_control = {
 static struct wl12xx_platform_data endeavor_wlan_data __initdata = {
 	.irq = TEGRA_GPIO_TO_IRQ(ENDEAVOR_WLAN_WOW),
 	.board_ref_clock = WL12XX_REFCLOCK_26,
-	.board_tcxo_clock = 1,
+	.board_tcxo_clock = WL12XX_TCXOCLOCK_26,
 //	.platform_quirks = WL12XX_PLATFORM_QUIRK_EDGE_IRQ,
 };
 /* HTC_WIFI_END */
