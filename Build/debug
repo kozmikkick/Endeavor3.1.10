@@ -34,8 +34,8 @@ while [ opt != '' ]
            option_picked "Standard Nvidia Auto Hotplug has been picked";
            cd ..
            export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
-           make -j4 kozmik_auto_hotplug_defconfig
-           make -j4
+           make -j8 kozmik_auto_hotplug_defconfig
+           make -j8
            cd Build
            exec bash
            ;;
@@ -44,8 +44,8 @@ while [ opt != '' ]
             option_picked "Nvidia Cpuquiet has been picked";
             cd ..
             export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
-            make -j4 kozmik_cpuquiet_defconfig
-            make -j4
+            make -j8 kozmik_cpuquiet_defconfig
+            make -j8
             cd Build
             exec bash
             ;;
@@ -54,8 +54,8 @@ while [ opt != '' ]
             option_picked "Dennis Rassmann's Mpdecision has been picked";
             cd ..
             export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
-            make -j4 kozmik_mpdecision_defconfig
-            make -j4
+            make -j8 kozmik_mpdecision_defconfig
+            make -j8
             cd Build
             exec bash
             ;;
