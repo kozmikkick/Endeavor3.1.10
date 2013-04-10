@@ -152,14 +152,18 @@ extern int get_tamper_sf(void);
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_SWEEP2WAKE
 int s2w_switch = 0;
 bool scr_suspended = false, exec_count = true;
-bool scr_on_touch = false, barrier[2] = {false, false};
+bool scr_on_touch = false, led_exec_count = false, barrier[2] = {false, false};
 static struct input_dev * sweep2wake_pwrdev;
+int sweep_backlight_mode = 0;
 static DEFINE_MUTEX(pwrkeyworklock);
 
 #ifdef CONFIG_CMDLINE_OPTIONS
 static int __init cy8c_read_s2w_cmdline(char *s2w)
 {
-	if (strcmp(s2w, "1") == 0) {
+	if (strcmp(s2w, "2") == 0) {
+		printk(KERN_INFO "[cmdline_s2w]: Sweep2Wake enabled. (No button backlight) | s2w='%s'", s2w);
+		s2w_switch = 2;
+	} else if (strcmp(s2w, "1") == 0) {
 		printk(KERN_INFO "[cmdline_s2w]: Sweep2Wake enabled. | s2w='%s'", s2w);
 		s2w_switch = 1;
 	} else if (strcmp(s2w, "0") == 0) {
@@ -1911,12 +1915,22 @@ static void synaptics_ts_finger_func(struct synaptics_ts_data *ts)
 
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_SWEEP2WAKE
 				/* if finger released, reset count & barriers */
-				if ((((ts->finger_count > 0)?1:0) == 0) && (s2w_switch > 0)) {
-					exec_count = true;
-					barrier[0] = false;
-					barrier[1] = false;
-					scr_on_touch = false;
-				}
+		if ((((ts->finger_count > 0)?1:0) == 0) && (s2w_switch > 0)) {
+			if ((s2w_switch != 2) &&
+			    (scr_suspended == true) &&
+			    (led_exec_count == false) &&
+			    (scr_on_touch == false) &&
+			    (exec_count == true)) {
+				sweep_backlight_mode = 0;
+				backlight_mode_set(sweep_backlight_mode);
+				printk(KERN_INFO "[sweep2wake]: deactivated button_backlight");
+			}
+			exec_count = true;
+			led_exec_count = true;
+			barrier[0] = false;
+			barrier[1] = false;
+			scr_on_touch = false;
+		}
 #endif
 			if (ts->htc_event == SYN_AND_REPORT_TYPE_A) {
 				/*input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0); */
@@ -2044,6 +2058,12 @@ static void synaptics_ts_finger_func(struct synaptics_ts_data *ts)
 								   ((finger_data[i][0] > prevx) &&
 								    (finger_data[i][0] < nextx) &&
 								    (finger_data[i][1] > 1780))) {
+									if ((led_exec_count == true) && (scr_on_touch == false) && (s2w_switch != 2)) {
+									sweep_backlight_mode = 1;
+									backlight_mode_set(sweep_backlight_mode);
+									printk(KERN_INFO "[sweep2wake]: activated button_backlight");
+									led_exec_count = false;
+									}
 									prevx = nextx;
 									nextx = 660;
 									barrier[0] = true;
@@ -3128,6 +3148,12 @@ static int synaptics_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 		//screen off, enable_irq_wake
 		scr_suspended = true;
 		enable_irq_wake(client->irq);
+		if ((s2w_switch != 2)) {
+			//ensure backlight is turned off
+				sweep_backlight_mode = 0;
+				backlight_mode_set(sweep_backlight_mode);
+			printk(KERN_INFO "[sweep2wake]: deactivated button_backlight | suspend");
+		}
 	}
 #endif
 
@@ -3311,7 +3337,6 @@ static int synaptics_ts_resume(struct i2c_client *client)
 		disable_irq_wake(client->irq);
 	}
 #endif
-
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_SWEEP2WAKE
 	if (s2w_switch == 0) {
 #endif
