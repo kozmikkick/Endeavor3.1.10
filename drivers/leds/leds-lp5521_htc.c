@@ -28,6 +28,9 @@
 #include <linux/leds-lp5521_htc.h>
 #include <linux/regulator/consumer.h>
 #include <mach/mfootprint.h>
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_SWEEP2WAKE
+#include <linux/synaptics_i2c_rmi.h>
+#endif
 #define LP5521_MAX_LEDS			3	/* Maximum number of LEDs */
 #define LED_DEBUG				1
 #if LED_DEBUG
@@ -49,7 +52,6 @@ static struct mutex	led_mutex;
 static struct workqueue_struct *g_led_work_queue;
 static struct work_struct led_powerkey_work;
 static struct workqueue_struct *led_powerkey_work_queue;
-
 
 struct lp5521_led {
 	int			id;
@@ -629,6 +631,17 @@ static void lp5521_backlight_off(struct i2c_client *client)
 
 }
 
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_SWEEP2WAKE
+extern void backlight_mode_set(int led_sweep)
+{
+	if (led_sweep == 1){
+		lp5521_backlight_on(private_lp5521_client);
+	} else {
+		lp5521_backlight_off(private_lp5521_client);
+	}
+}
+#endif
+
 static void lp5521_dual_off(struct i2c_client *client)
 {
 	uint8_t data = 0x00;
@@ -753,7 +766,7 @@ static ssize_t led_behavior_show(struct device *dev,
 
 static DEVICE_ATTR(behavior, 0644, led_behavior_show, led_behavior_set);
 
-static void lp5521_led_birghtness_set(struct led_classdev *led_cdev,
+static void lp5521_led_brightness_set(struct led_classdev *led_cdev,
 			       enum led_brightness brightness)
 {
 	struct i2c_client *client = private_lp5521_client;
@@ -1291,7 +1304,6 @@ static int lp5521_led_probe(struct i2c_client *client
 	struct lp5521_chip		*cdata;
 	struct led_i2c_platform_data *pdata;
 	int ret, i;
-	uint8_t data;
 
 	printk("[LED][PROBE] led driver probe +++\n");
 
@@ -1338,7 +1350,7 @@ static int lp5521_led_probe(struct i2c_client *client
 	/* intail LED config */
 	for (i = 0; i < pdata->num_leds; i++) {
 		cdata->leds[i].cdev.name = pdata->led_config[i].name;
-		cdata->leds[i].cdev.brightness_set = lp5521_led_birghtness_set;
+		cdata->leds[i].cdev.brightness_set = lp5521_led_brightness_set;
 		ret = led_classdev_register(dev, &cdata->leds[i].cdev);
 		if (ret < 0) {
 			dev_err(dev, "couldn't register led[%d]\n", i);
@@ -1400,7 +1412,6 @@ static int lp5521_led_probe(struct i2c_client *client
 	if (lp5521_led_tag_status) {
 		led_behavior(client, lp5521_led_tag_status);
 	}
-
 	printk("[LED][PROBE] led driver probe ---\n");
 	return 0;
 
