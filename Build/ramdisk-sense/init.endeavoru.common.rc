@@ -410,18 +410,15 @@ service htcbatt /system/bin/htcbatt
     class core
     oneshot
 
-# Prepare TF service
+# start tf_daemon service
 service tf_daemon /system/bin/tf_daemon -storageDir /data/tf -d
-    disabled
     class main
     user root
     group shell
-    oneshot
 
-# Create data directory and start service
-on property:tf.enable=y
+# may restart due to /data/tf not existing yet
+on property:init.svc.tf_daemon=restarting
     mkdir /data/tf
-    start tf_daemon
 
 # Discretix DRM change start
 service dx_drm_server /system/bin/DxDrmServerIpc -f -o allow_other /data/DxDrm/fuse
@@ -448,28 +445,48 @@ service setup_fs /system/bin/setup_fs \
     group root
     oneshot
 
-service cand /system/bin/cand
-    class main
+service htc_ebdlogd /system/bin/htc_ebdlogd -s -k -P 7
     user root
-
-service post_boot /system/bin/sh /system/etc/post_boot.sh
-    class main
-    user root
+    cgroup bg
     disabled
     oneshot
+    ioprio idle 0
+
+service htc_ebdlogd_rel /system/bin/htc_ebdlogd -s -k
+    user root
+    cgroup bg
+    disabled
+    oneshot
+    ioprio idle 0
+
+on property:ro.build.tags=test-keys
+    start htc_ebdlogd
+
+on property:ro.build.tags=release-keys
+    start htc_ebdlogd_rel
+
+service cand /system/bin/cand
+	class main
+	user root
+
+service post_boot /system/bin/sh /system/etc/post_boot.sh
+	class main
+	user root
+	disabled
+	oneshot
 
 on property:ro.boot.wipeddata=0
     write /sys/kernel/debug/tegra_hotplug/max_cpus 3
     write /sys/kernel/debug/tegra_hotplug/min_cpus 3
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1300000
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 1300000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1500000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 1500000
     write /sys/module/cpu_tegra/parameters/cpu_user_cap 1300000
 
 on property:ro.boot.wipeddata=1
     write /sys/kernel/debug/tegra_hotplug/max_cpus 1
     write /sys/kernel/debug/tegra_hotplug/min_cpus 1
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1300000
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 1300000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1500000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 1500000
     write /sys/module/cpu_tegra/parameters/cpu_user_cap 1300000
 
 on property:init.svc.bootanim=stopped
@@ -477,7 +494,7 @@ on property:init.svc.bootanim=stopped
     write /sys/kernel/debug/tegra_hotplug/min_cpus 1
     write /sys/module/cpu_tegra/parameters/cpu_user_cap 0 
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 25500
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1300000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1500000
     write /sys/module/cpu_tegra3/parameters/auto_hotplug 1
     start post_boot
 
