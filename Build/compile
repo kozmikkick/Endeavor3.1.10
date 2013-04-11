@@ -35,8 +35,8 @@ while [ opt != '' ]
 # compile the kernel
 cd ..
 export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
-make -j4 kozmik_auto_hotplug_defconfig
-make -j4
+make -j8 kozmik_auto_hotplug_defconfig
+make -j8
 
 # copy modules
 find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
@@ -107,8 +107,8 @@ rm -fR ./zImage.new
 # compile the kernel
 cd ..
 export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
-make -j4 kozmik_cpuquiet_defconfig
-make -j4
+make -j8 kozmik_cpuquiet_defconfig
+make -j8
 
 # copy modules
 find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
@@ -179,8 +179,8 @@ rm -fR ./zImage.new
 # compile the kernel
 cd ..
 export CROSS_COMPILE=arm-eabi- ARCH=arm SUBARM=arm
-make -j4 kozmik_mpdecision_defconfig
-make -j4
+make -j8 kozmik_mpdecision_defconfig
+make -j8
 
 # copy modules
 find arch -type f -name '*.ko' -exec cp -f {} Build/KozmiKKernel/modules \;
