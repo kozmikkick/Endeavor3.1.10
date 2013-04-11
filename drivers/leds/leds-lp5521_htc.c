@@ -44,7 +44,7 @@
 static int led_rw_delay;
 static int current_state, current_blink, current_time;
 static int current_currents = 0, current_lut_coefficient, current_pwm_coefficient;
-static int current_mode, backlight_mode, suspend_mode, offtimer_mode, saved_mode=0;
+static int current_mode, backlight_mode, suspend_mode, offtimer_mode, saved_mode = 0;
 static int amber_mode, button_brightness, slow_blink_brightness, slow_blink_brightness_limit = 1;
 #ifdef CONFIG_BUILD_FOR_SENSE
 static int auto_bln = 1;
@@ -1663,7 +1663,7 @@ static int lp5521_led_probe(struct i2c_client *client
    	tegra_gpio_enable(pdata->ena_gpio);
 	button_brightness = pdata->led_config[2].led_lux * 255 / 100;
 	button_brightness_board = button_brightness;
-	slow_blink_brightness = 0;
+	slow_blink_brightness = 255;
 
 	private_lp5521_client = client;
 	g_led_work_queue = create_workqueue("led");
