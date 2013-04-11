@@ -45,6 +45,9 @@ static int current_state, current_blink, current_time;
 static int current_currents = 0, current_lut_coefficient, current_pwm_coefficient;
 static int current_mode, backlight_mode, suspend_mode, offtimer_mode;
 static int amber_mode, button_brightness, slow_blink_brightness;
+#ifdef CONFIG_BUILD_FOR_SENSE
+static int auto_bln = 1;
+#endif
 static struct regulator *regulator;
 static struct i2c_client *private_lp5521_client;
 static struct mutex	led_mutex;
@@ -252,6 +255,9 @@ static void lp5521_green_blink(struct i2c_client *client)
 	if( current_mode == 0 && backlight_mode == 0 )
 		lp5521_led_enable(client);
 	current_mode = 2;
+#ifdef CONFIG_BUILD_FOR_SENSE
+	if ( auto_bln < 2 ) {
+#endif
 	mutex_lock(&led_mutex);
 	/* === load program with green load program and blue direct program === */
 	if ( backlight_mode >= 2 )
@@ -310,6 +316,12 @@ static void lp5521_green_blink(struct i2c_client *client)
 	ret = i2c_write_block(client, 0x00, &data, 1);
 	udelay(500);
 	mutex_unlock(&led_mutex);
+#ifdef CONFIG_BUILD_FOR_SENSE
+	}
+	//Xmister: Turn on BLN
+	if (auto_bln && suspend_mode )
+		lp5521_led_current_set_for_key(2);
+#endif
 	I(" %s ---\n" , __func__);
 }
 
@@ -704,6 +716,16 @@ static void lp5521_dual_off(struct i2c_client *client)
 
 	I(" %s +++\n" , __func__);
 	pdata = client->dev.platform_data;
+#ifdef CONFIG_BUILD_FOR_SENSE
+	//Xmister: Turn off BLN
+	if (auto_bln && current_mode == 2) {
+		if ( suspend_mode ) 
+			lp5521_backlight_off(private_lp5521_client);
+		else {
+			lp5521_backlight_on(private_lp5521_client);
+		}
+	}
+#endif
 	mutex_lock(&led_mutex);
 	/* === set green pwm to 0 === */
 	data = 0x00;
@@ -1451,13 +1473,42 @@ static ssize_t lp5521_led_lut_coefficient_store(struct device *dev,
 static DEVICE_ATTR(lut_coefficient, 0644, lp5521_led_lut_coefficient_show,
 					lp5521_led_lut_coefficient_store);
 
+#ifdef CONFIG_BUILD_FOR_SENSE
+
+static ssize_t lp5521_led_auto_bln_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", auto_bln);
+}
+
+static ssize_t lp5521_led_auto_bln_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	sscanf(buf, "%d", &auto_bln);
+	if (auto_bln < 0) auto_bln=0;
+	if (auto_bln > 2) auto_bln=2;
+
+	return count;
+}
+
+static DEVICE_ATTR(auto_bln, 0644, lp5521_led_auto_bln_show,
+					lp5521_led_auto_bln_store);
+
+#endif
+
 static void lp5521_led_early_suspend(struct early_suspend *handler)
 {
 	struct i2c_client *client = private_lp5521_client;
 
 	printk("[LED][SUSPEND] lp5521_led_early_suspend +++\n");
 	suspend_mode = 1;
-
+#ifdef CONFIG_BUILD_FOR_SENSE
+	//Xmister, set suspend blink if neccessary
+	if ( auto_bln && current_mode == 2 )
+		lp5521_led_current_set_for_key(2);
+	else
+#endif
 	if( backlight_mode == 1 )
 		lp5521_backlight_off(client);
 	else if ( backlight_mode == 2 )
@@ -1469,6 +1520,13 @@ static void lp5521_led_late_resume(struct early_suspend *handler)
 {
 	printk("[LED][RESUME] lp5521_led_late_resume +++\n");
 	suspend_mode = 0;
+#ifdef CONFIG_BUILD_FOR_SENSE
+	//Xmister re-enable stock backlight on resume
+	if (auto_bln) {
+		lp5521_backlight_off(private_lp5521_client);
+		lp5521_backlight_on(private_lp5521_client);
+	}
+#endif
 	printk("[LED][RESUME] lp5521_led_late_resume ---\n");
 }
 
@@ -1543,6 +1601,13 @@ static int lp5521_led_probe(struct i2c_client *client
 			pr_err("%s: failed on create attr slow_blink [%d]\n", __func__, i);
 			goto err_register_attr_slow_blink;
 		}
+#ifdef CONFIG_BUILD_FOR_SENSE
+		ret = device_create_file(cdata->leds[i].cdev.dev, &dev_attr_auto_bln);
+		if (ret < 0) {
+			pr_err("%s: failed on create attr auto_bln [%d]\n", __func__, i);
+			goto err_register_attr_auto_bln;
+		}
+#endif
 		ret = device_create_file(cdata->leds[i].cdev.dev, &dev_attr_off_timer);
 		if (ret < 0) {
 			pr_err("%s: failed on create attr off_timer [%d]\n", __func__, i);
@@ -1622,6 +1687,12 @@ err_register_attr_slow_blink:
 	for (i = 0; i < pdata->num_leds; i++) {
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_slow_blink);
 	}
+#ifdef CONFIG_BUILD_FOR_SENSE
+err_register_attr_auto_bln:
+	for (i = 0; i < pdata->num_leds; i++) {
+		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_auto_bln);
+	}
+#endif
 err_register_attr_blink:
 	for (i = 0; i < pdata->num_leds; i++) {
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_blink);
@@ -1654,6 +1725,9 @@ static int __devexit lp5521_led_remove(struct i2c_client *client)
 	for (i = 0; i < pdata->num_leds; i++) {
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_blink);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_slow_blink);
+#ifdef CONFIG_BUILD_FOR_SENSE
+		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_auto_bln);
+#endif
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_off_timer);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_currents);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_pwm_coefficient);
