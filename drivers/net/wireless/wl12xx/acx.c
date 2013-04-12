@@ -449,6 +449,13 @@ int wl1271_acx_conn_monit_params(struct wl1271 *wl, struct wl12xx_vif *wlvif,
 	u32 timeout = ACX_CONN_MONIT_DISABLE_VALUE;
 	int ret;
 
+//HTC_WIFI_START
+    if(enable)
+        printk("wl1271_acx_conn_monit_params enable = true\n");
+    else
+        printk("wl1271_acx_conn_monit_params enable = false\n");
+//HTC_WIFI_END
+
 	wl1271_debug(DEBUG_ACX, "acx connection monitor parameters: %s",
 		     enable ? "enabled" : "disabled");
 
@@ -461,6 +468,10 @@ int wl1271_acx_conn_monit_params(struct wl1271 *wl, struct wl12xx_vif *wlvif,
 	if (enable) {
 		threshold = wl->conf.conn.synch_fail_thold;
 		timeout = wl->conf.conn.bss_lose_timeout;
+		//HTC_WIFI_START
+        printk("beacon miss threshold = %d\n",threshold);
+        printk("timeout = %d\n",timeout);
+		//HTC_WIFI_END
 	}
 
 	acx->role_id = wlvif->role_id;

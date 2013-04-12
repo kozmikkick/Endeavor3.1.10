@@ -341,6 +341,15 @@ static const struct file_operations stats_ ##name## _ops = {		\
 
 #define DEBUGFS_STATS_ADD(name, field)					\
 	debugfs_create_u32(#name, 0400, statsd, (u32 *) &field);
+
+//HTC_WIFI_START
+//HTC_WIFI_OFFLOAD+	
+struct dentry *tx_track;
+#define DEBUGFS_STATS_ADD_MODE(name, mode , field)					\
+	debugfs_create_u32(#name, mode, tx_track, (u32 *) &field);
+//HTC_WIFI_OFFLOAD-
+//HTC_WIFI_END
+
 #define DEBUGFS_DEVSTATS_ADD(name)					\
 	debugfs_create_file(#name, 0400, statsd, local, &stats_ ##name## _ops);
 
@@ -354,8 +363,24 @@ void debugfs_hw_add(struct ieee80211_local *local)
 	struct dentry *phyd = local->hw.wiphy->debugfsdir;
 	struct dentry *statsd;
 
+//HTC_WIFI_START
+//HTC_WIFI_OFFLOAD+
+    tx_track = debugfs_create_dir("wifi_tx", NULL);
+    if (!tx_track)
+        return;
+//HTC_WIFI_OFFLOAD-
+//HTC_WIFI_END
+
 	if (!phyd)
 		return;
+
+//HTC_WIFI_START
+//HTC_WIFI_OFFLOAD+		
+	DEBUGFS_STATS_ADD_MODE(failed_count, 0444, local->dot11FailedCount);	
+	DEBUGFS_STATS_ADD_MODE(retry_count, 0444, local->dot11RetryCount);	
+	DEBUGFS_STATS_ADD_MODE(transmitted_frame_count, 0444, local->dot11TransmittedFrameCount);
+//HTC_WIFI_OFFLOAD-
+//HTC_WIFI_END
 
 	local->debugfs.keys = debugfs_create_dir("keys", phyd);
 
@@ -434,3 +459,13 @@ void debugfs_hw_add(struct ieee80211_local *local)
 	DEBUGFS_DEVSTATS_ADD(dot11FCSErrorCount);
 	DEBUGFS_DEVSTATS_ADD(dot11RTSSuccessCount);
 }
+
+//HTC_WIFI_START
+//HTC_WIFI_OFFLOAD+
+void debugfs_hw_remove()
+{
+	if (tx_track != NULL)
+    	debugfs_remove_recursive(tx_track);
+}
+//HTC_WIFI_OFFLOAD-
+//HTC_WIFI_END

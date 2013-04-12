@@ -32,6 +32,8 @@
 #include "tx.h"
 #include "io.h"
 
+extern int htc_wake_debug; //HTC_CSP
+
 static u8 wl12xx_rx_get_mem_block(struct wl12xx_fw_status *status,
 				  u32 drv_rx_counter)
 {
@@ -116,6 +118,10 @@ static int wl1271_rx_handle_data(struct wl1271 *wl, u8 *data, u32 length,
 	if (unlikely(wl->plt))
 		return -EINVAL;
 
+	if (htc_wake_debug == 1)  {
+			printk("[WLAN] %s \n", __func__);
+			//htc_wake_debug = 0;
+	}
 	/* the data read starts with the descriptor */
 	desc = (struct wl1271_rx_descriptor *) data;
 
@@ -164,14 +170,31 @@ static int wl1271_rx_handle_data(struct wl1271 *wl, u8 *data, u32 length,
 	*hlid = desc->hlid;
 
 	hdr = (struct ieee80211_hdr *)skb->data;
-	if (ieee80211_is_beacon(hdr->frame_control))
+	if (ieee80211_is_beacon(hdr->frame_control)){
+		if (htc_wake_debug == 1) printk("[WLAN] ieee80211_is_beacon \n");
 		beacon = 1;
-	if (ieee80211_is_data_present(hdr->frame_control))
+	}
+	if (ieee80211_is_data_present(hdr->frame_control)){
+		if (htc_wake_debug == 1) printk("[WLAN] ieee80211_is_data_present \n");
 		is_data = 1;
+	}
+//HTC_WIFI_STARTi
+//TI patch 0012
+	if (ieee80211_is_deauth(hdr->frame_control) ||
+	    ieee80211_is_disassoc(hdr->frame_control))
+		wl1271_dump(DEBUG_MAC80211, "DISPACKET: ",
+			    skb->data, skb->len - desc->pad_len);
+//HTC_WIFI_END
 
 	wl1271_rx_status(wl, desc, IEEE80211_SKB_RXCB(skb), beacon);
 
 	seq_num = (le16_to_cpu(hdr->seq_ctrl) & IEEE80211_SCTL_SEQ) >> 4;
+	if (htc_wake_debug == 1) {
+		printk("[WLAN] rx skb 0x%p: %d B %s seq %d hlid %d\n", skb,
+		     skb->len - desc->pad_len,
+		     beacon ? "beacon" : "",
+		     seq_num, *hlid);
+	}
 	wl1271_debug(DEBUG_RX, "rx skb 0x%p: %d B %s seq %d hlid %d", skb,
 		     skb->len - desc->pad_len,
 		     beacon ? "beacon" : "",
@@ -184,7 +207,7 @@ static int wl1271_rx_handle_data(struct wl1271 *wl, u8 *data, u32 length,
 
 #ifdef CONFIG_HAS_WAKELOCK
 	/* let the frame some time to propagate to user-space */
-	wake_lock_timeout(&wl->rx_wake, HZ);
+	wake_lock_timeout(&wl->rx_wake, HZ/2); //HTC_WIFI, modify from HZ to HZ/2
 #endif
 
 	return is_data;
@@ -221,6 +244,13 @@ int wl12xx_rx(struct wl1271 *wl, struct wl12xx_fw_status *status)
 			wl1271_warning("received empty data");
 			break;
 		}
+
+//HTC_CSP_START
+		if (htc_wake_debug == 1)  {
+			printk("[WLAN] %s received data\n", __func__);
+			//htc_wake_debug = 0;
+		}
+//HTC_CSP_END
 
 		if (wl->chip.id != CHIP_ID_1283_PG20) {
 			/*

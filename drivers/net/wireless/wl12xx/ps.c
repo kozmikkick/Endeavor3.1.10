@@ -29,6 +29,8 @@
 
 #define WL1271_WAKEUP_TIMEOUT 500
 
+extern int htc_wake_debug;  //HTC_CSP
+
 void wl1271_elp_work(struct work_struct *work)
 {
 	struct delayed_work *dwork;
@@ -41,25 +43,43 @@ void wl1271_elp_work(struct work_struct *work)
 
 	wl1271_debug(DEBUG_PSM, "elp work");
 
+	//HTC_WIFI_START
+	/* wow_enabled is set during suspending */
+	if (wl->wow_enabled)
+		wl1271_info("@@@ elp work..");
+	//HTC_WIFI_END
+
 	mutex_lock(&wl->mutex);
 
 	if (unlikely(wl->state != WLCORE_STATE_ON))
 		goto out;
 
 	/* our work might have been already cancelled */
-	if (unlikely(!test_bit(WL1271_FLAG_ELP_REQUESTED, &wl->flags)))
+	if (unlikely(!test_bit(WL1271_FLAG_ELP_REQUESTED, &wl->flags))) {
+		if (wl->wow_enabled)
+			wl1271_info("@@@ goto out due to WL1271_FLAG_ELP_REQUESTED..");
 		goto out;
+	}
 
-	if (test_bit(WL1271_FLAG_IN_ELP, &wl->flags))
+	if (test_bit(WL1271_FLAG_IN_ELP, &wl->flags)) {
+		if (wl->wow_enabled)
+			wl1271_info("@@@ goto out due to WL1271_FLAG_IN_ELP..");
 		goto out;
+	}
 
 	wl12xx_for_each_wlvif(wl, wlvif) {
-		if (wlvif->bss_type == BSS_TYPE_AP_BSS)
+		if (wlvif->bss_type == BSS_TYPE_AP_BSS) {
+			if (wl->wow_enabled)
+				wl1271_info("@@@ goto out due to BSS_TYPE_AP_BSS..");
 			goto out;
+		}
 
 		if (!test_bit(WLVIF_FLAG_IN_PS, &wlvif->flags) &&
-		    test_bit(WLVIF_FLAG_IN_USE, &wlvif->flags))
+		    test_bit(WLVIF_FLAG_IN_USE, &wlvif->flags)) {
+			if (wl->wow_enabled)
+				wl1271_info("@@@ goto out due to WLVIF_FLAG_IN_USE..");
 			goto out;
+		}
 	}
 
 	wl1271_debug(DEBUG_PSM, "chip to elp");
@@ -72,9 +92,16 @@ void wl1271_elp_work(struct work_struct *work)
 
 	set_bit(WL1271_FLAG_IN_ELP, &wl->flags);
 
+	/* wow_enabled is set during suspending */
+	if (wl->wow_enabled) {
+		wl1271_info("@@@ chip to elp..");
+		htc_wake_debug = 1;  //HTC_CSP
+	}
 out:
 	mutex_unlock(&wl->mutex);
 }
+
+#define ELP_ENTRY_DELAY  5
 
 /* Routines to toggle sleep mode while in ELP */
 void wl1271_ps_elp_sleep(struct wl1271 *wl)
@@ -99,7 +126,11 @@ void wl1271_ps_elp_sleep(struct wl1271 *wl)
 			return;
 	}
 
-	timeout = wl->conf.conn.elp_timeout;
+	if (wl->conf.conn.forced_ps)
+		timeout = ELP_ENTRY_DELAY;
+	else
+		timeout = ELP_ENTRY_DELAY; //wl->conf.conn.elp_timeout; //HTC_WIFI, reduce the delay before we send ELP command
+
 	ieee80211_queue_delayed_work(wl->hw, &wl->elp_work,
 				     msecs_to_jiffies(timeout));
 }

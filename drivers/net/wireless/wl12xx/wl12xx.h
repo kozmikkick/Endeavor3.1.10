@@ -37,6 +37,7 @@
 
 #include "conf.h"
 #include "ini.h"
+int sqos_tx_fail_get(void); //HTC_WIFI, Vito Smart Qos feature 0128
 
 #define WL127X_FW_NAME_MULTI	"ti-connectivity/wl127x-fw-4-mr.bin"
 #define WL127X_FW_NAME_SINGLE	"ti-connectivity/wl127x-fw-4-sr.bin"

@@ -3653,8 +3653,10 @@ static int nl80211_trigger_scan(struct sk_buff *skb, struct genl_info *info)
 	if (!rdev->ops->scan)
 		return -EOPNOTSUPP;
 
-	if (rdev->scan_req)
+	if (rdev->scan_req) {
+		printk("[WLAN] %s: EBUST - scan_req is not null\n", __func__); //HTC_WIFI, add debug message
 		return -EBUSY;
+	}
 
 	if (info->attrs[NL80211_ATTR_SCAN_FREQUENCIES]) {
 		n_channels = validate_scan_freqs(

@@ -841,6 +841,9 @@ static u8 wl1271_tx_get_rate_flags(u8 rate_class_index)
 	return flags;
 }
 
+//HTC_WIFI_START
+extern int stop_wifi_driver_flag;
+//HTC_WIFI_END
 static void wl1271_tx_complete_packet(struct wl1271 *wl,
 				      struct wl1271_tx_hw_res_descr *result)
 {
@@ -859,8 +862,19 @@ static void wl1271_tx_complete_packet(struct wl1271 *wl,
 		return;
 	}
 
+	//HTC_WIFI_START
+	if (stop_wifi_driver_flag) {
+		wl1271_warning("=== driver is under stopping ===\n");
+		return;
+	}
+	//HTC_WIFI_END
+
 	skb = wl->tx_frames[id];
-	info = IEEE80211_SKB_CB(skb);
+    if(skb) //HTC_WIFI
+        info = IEEE80211_SKB_CB(skb);
+    else //HTC_WIFI_START
+        printk("[WLAN] skb is null for id=%d\n",id);
+	//HTC_WIFI_END	
 
 	if (wl12xx_is_dummy_packet(wl, skb)) {
 		wl1271_free_tx_id(wl, id);
@@ -877,6 +891,7 @@ static void wl1271_tx_complete_packet(struct wl1271 *wl,
 			info->flags |= IEEE80211_TX_STAT_ACK;
 		rate = wl1271_rate_to_idx(result->rate_class_index,
 					  wlvif->band);
+		sqos_phy_rate_get(result->rate_class_index);// for SQOS //HTC_WIFI, Vito Smart Qos feature 0128
 		rate_flags = wl1271_tx_get_rate_flags(result->rate_class_index);
 		retries = result->ack_failures;
 	} else if (result->status == TX_RETRY_EXCEEDED) {
@@ -933,14 +948,24 @@ static void wl1271_tx_complete_packet(struct wl1271 *wl,
 	wl1271_free_tx_id(wl, result->id);
 }
 
+extern int htc_wake_debug; //HTC_CSP
+
 /* Called upon reception of a TX complete interrupt */
 int wl1271_tx_complete(struct wl1271 *wl)
 {
+    static int is_in = 0;//HTC_WIFI
 	struct wl1271_acx_mem_map *memmap =
 		(struct wl1271_acx_mem_map *)wl->target_mem_map;
 	u32 count, fw_counter;
 	u32 i;
 	int ret;
+
+	//HTC_WIFI_START
+	if (is_in)
+		printk("HTC - we were preemted in wl1271_tx_complete, is_in = %d\n",is_in);
+
+	is_in++;
+	//HTC_WIFI_END
 
 	/* read the tx results from the chipset */
 	ret = wl1271_read(wl, le32_to_cpu(memmap->tx_result),
@@ -960,6 +985,13 @@ int wl1271_tx_complete(struct wl1271 *wl)
 	count = fw_counter - wl->tx_results_count;
 	wl1271_debug(DEBUG_TX, "tx_complete received, packets: %d", count);
 
+//HTC_CSP_START
+	if (htc_wake_debug == 1) {
+		printk("[WLAN] %s tx_complete received, packets: %d\n", __func__, count);
+		htc_wake_debug = 0;
+	}
+//HTC_CSP_END
+
 	/* verify that the result buffer is not getting overrun */
 	if (unlikely(count > TX_HW_RESULT_QUEUE_LEN))
 		wl1271_warning("TX result overflow from chipset: %d", count);
@@ -971,11 +1003,15 @@ int wl1271_tx_complete(struct wl1271 *wl)
 
 		/* process the packet */
 		result =  &(wl->tx_res_if->tx_results_queue[offset]);
-		wl1271_tx_complete_packet(wl, result);
+		if (result) //HTC_WIFI
+			wl1271_tx_complete_packet(wl, result);
+		else //HTC_WIFI_START
+			printk("HTC - result is NULL at offset = %d and count = %d\n",offset,count);
+		//HTC_WIFI_END
 
 		wl->tx_results_count++;
 	}
-
+    is_in--; //HTC_WIFI
 out:
 	return ret;
 }
@@ -1027,6 +1063,8 @@ void wl12xx_tx_reset_wlvif(struct wl1271 *wl, struct wl12xx_vif *wlvif)
 			wlvif->sta.ba_rx_bitmap = 0;
 			wl12xx_free_link(wl, wlvif, &hlid);
 		}
+		wl->links[i].allocated_pkts = 0;
+		wl->links[i].prev_freed_pkts = 0;
 	}
 	wlvif->last_tx_hlid = 0;
 

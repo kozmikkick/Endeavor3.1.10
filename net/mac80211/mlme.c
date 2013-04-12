@@ -2545,10 +2545,11 @@ int ieee80211_mgd_auth(struct ieee80211_sub_if_data *sdata,
 	wk->probe_auth.privacy = req->bss->capability & WLAN_CAPABILITY_PRIVACY;
 
 	/* if we already have a probe, don't probe again */
-	if (req->bss->proberesp_ies)
+        printk("We don't want to use direct probe, we will auth directly\n"); //HTC_WIFI
+//	if (req->bss->proberesp_ies) //austin disable direct probe to prevent prefer 5G issue //HTC_WIFI
 		wk->type = IEEE80211_WORK_AUTH;
-	else
-		wk->type = IEEE80211_WORK_DIRECT_PROBE;
+//	else    //austin disable direct probe to prevent prefer 5G issue //HTC_WIFI
+//		wk->type = IEEE80211_WORK_DIRECT_PROBE;  //HTC_WIFI austin disable direct probe to prevent prefer 5G issue
 	wk->chan = req->bss->channel;
 	wk->chan_type = NL80211_CHAN_NO_HT;
 	wk->sdata = sdata;

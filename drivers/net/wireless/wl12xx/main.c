@@ -62,6 +62,35 @@ unsigned char *nvs_ram=NULL;
 #endif
 /*HTC_WIFI_END */
 
+//HTC_WIFI_START
+//Vito Smart Qos feature 0128
+#define DEFAULT_CHANNEL_BANDWIDTH 20
+struct ieee80211_hw *priv_hw;
+static int cur_phy_rate = 0;
+
+int htc_wake_debug = 0;  //HTC_CSP
+
+typedef struct sqos_wifi_info {
+	int chbandw;
+	int mode;
+	int product;
+}sqos_wifi_info_t;
+
+typedef struct sqos_wifi_data {
+	int phy_rate;
+	int txfail;
+	int qlen;
+	int rssi;
+
+	int status;
+
+}sqos_wifi_data_t;
+int cur_rssi = 0;
+int pre_drop = 0;
+//int sqos_flag = 0;
+//HTC_WIFI_END
+
+
 #define WL1271_BOOT_RETRIES 3
 
 #define WL12XX_CORE_DUMP_CHUNK_SIZE	(4 * PAGE_SIZE)
@@ -119,7 +148,7 @@ static struct conf_drv_settings default_conf = {
 			[CONF_SG_RXT] = 1200,
 			[CONF_SG_TXT] = 1000,
 			[CONF_SG_ADAPTIVE_RXT_TXT] = 1,
-			[CONF_SG_GENERAL_USAGE_BIT_MAP] = 19,
+			[CONF_SG_GENERAL_USAGE_BIT_MAP] = 3,
 			[CONF_SG_HV3_MAX_SERVED] = 6,
 			[CONF_SG_PS_POLL_TIMEOUT] = 10,
 			[CONF_SG_UPSD_TIMEOUT] = 10,
@@ -142,7 +171,7 @@ static struct conf_drv_settings default_conf = {
 	.rx = {
 		.rx_msdu_life_time           = 512000,
 		.packet_detection_threshold  = 0,
-		.ps_poll_timeout             = 15,
+		.ps_poll_timeout             = 60, //HTC_WIFI_START, change from 15 to 60
 		.upsd_timeout                = 15,
 		.rts_threshold               = IEEE80211_MAX_RTS_THRESHOLD,
 		.rx_cca_threshold            = 0,
@@ -155,8 +184,8 @@ static struct conf_drv_settings default_conf = {
 		.tx_energy_detection         = 0,
 		.sta_rc_conf                 = {
 			.enabled_rates       = 0,
-			.short_retry_limit   = 10,
-			.long_retry_limit    = 10,
+			.short_retry_limit   = 100, //HTC_WIFI_START, change from 10 to 100
+			.long_retry_limit    = 100, //HTC_WIFI_START, change from 10 to 100
 			.aflags              = 0,
 		},
 		.ac_conf_count               = 4,
@@ -258,8 +287,8 @@ static struct conf_drv_settings default_conf = {
 			},
 
 		},
-		.synch_fail_thold            = 12,
-		.bss_lose_timeout            = 400,
+		.synch_fail_thold            = 10, //HTC_WIFI_START
+		.bss_lose_timeout            = 100, //HTC_WIFI_START
 		.cons_bcn_loss_time          = 5000,
 		.max_bcn_loss_time           = 10000,
 		.beacon_rx_timeout           = 10000,
@@ -271,11 +300,11 @@ static struct conf_drv_settings default_conf = {
 		.psm_entry_retries           = 8,
 		.psm_exit_retries            = 16,
 		.psm_entry_nullfunc_retries  = 3,
-		.dynamic_ps_timeout          = 1500,
+		.dynamic_ps_timeout          = 60,
 		.forced_ps                   = false,
 		.keep_alive_interval         = 55000,
 		.max_listen_interval         = 20,
-		.elp_timeout                 = 20,
+		.elp_timeout                 = 200,
 	},
 	.itrim = {
 		.enable = false,
@@ -299,7 +328,7 @@ static struct conf_drv_settings default_conf = {
 		.max_dwell_time_active        = 50000,
 		.min_dwell_time_passive       = 100000,
 		.max_dwell_time_passive       = 100000,
-		.num_probe_reqs               = 2,
+		.num_probe_reqs               = 3,
 		.split_scan_timeout           = 50000,
 	},
 	.sched_scan = {
@@ -567,12 +596,15 @@ static int wl1271_dev_notify(struct notifier_block *me, unsigned long what,
 		return NOTIFY_DONE;
 
 	wl_temp = hw->priv;
+    printk("wl1271_dev_notify mutex_lock 1\n");
 	mutex_lock(&wl_list_mutex);
+    printk("wl1271_dev_notify mutex_lock 2\n");
 	list_for_each_entry(wl, &wl_list, list) {
 		if (wl == wl_temp)
 			break;
 	}
 	mutex_unlock(&wl_list_mutex);
+    printk("wl1271_dev_notify mutex_lock 3\n");
 	if (wl != wl_temp)
 		return NOTIFY_DONE;
 
@@ -1199,6 +1231,7 @@ static int wl12xx_irq_locked(struct wl1271 *wl)
 		}
 
 		if (likely(intr & WL1271_ACX_INTR_DATA)) {
+			if (htc_wake_debug == 1)  printk("[WLAN] %s WL1271_ACX_INTR_DATA\n", __func__);  //HTC_CSP
 			wl1271_debug(DEBUG_IRQ, "WL1271_ACX_INTR_DATA");
 
 			ret = wl12xx_rx(wl, wl->fw_status);
@@ -1234,9 +1267,11 @@ static int wl12xx_irq_locked(struct wl1271 *wl)
 				      skb_queue_len(&wl->deferred_rx_queue);
 			if (defer_count > WL1271_DEFERRED_QUEUE_LIMIT)
 				wl1271_flush_deferred_work(wl);
+
 		}
 
 		if (intr & WL1271_ACX_INTR_EVENT_A) {
+			if (htc_wake_debug == 1)  printk("[WLAN] %s WL1271_ACX_INTR_EVENT_A\n", __func__);  //HTC_CSP
 			wl1271_debug(DEBUG_IRQ, "WL1271_ACX_INTR_EVENT_A");
 			ret = wl1271_event_handle(wl, 0);
 			if (ret < 0)
@@ -1244,23 +1279,30 @@ static int wl12xx_irq_locked(struct wl1271 *wl)
 		}
 
 		if (intr & WL1271_ACX_INTR_EVENT_B) {
+			if (htc_wake_debug == 1)  printk("[WLAN] %s WL1271_ACX_INTR_EVENT_B\n", __func__);  //HTC_CSP
 			wl1271_debug(DEBUG_IRQ, "WL1271_ACX_INTR_EVENT_B");
 			ret = wl1271_event_handle(wl, 1);
 			if (ret < 0)
 				goto out;
 		}
 
-		if (intr & WL1271_ACX_INTR_INIT_COMPLETE)
+		if (intr & WL1271_ACX_INTR_INIT_COMPLETE) {
+			if (htc_wake_debug == 1)  printk("[WLAN] %s WL1271_ACX_INTR_INIT_COMPLETE\n", __func__);  //HTC_CSP
 			wl1271_debug(DEBUG_IRQ,
-				     "WL1271_ACX_INTR_INIT_COMPLETE");
+					"WL1271_ACX_INTR_INIT_COMPLETE");
+		}
 
-		if (intr & WL1271_ACX_INTR_HW_AVAILABLE)
+		if (intr & WL1271_ACX_INTR_HW_AVAILABLE) {
+			if (htc_wake_debug == 1)  printk("[WLAN] %s WL1271_ACX_INTR_HW_AVAILABLE\n", __func__);  //HTC_CSP
 			wl1271_debug(DEBUG_IRQ, "WL1271_ACX_INTR_HW_AVAILABLE");
+		}
+		htc_wake_debug = 0;  //HTC_CSP
 	}
 
 	wl1271_ps_elp_sleep(wl);
 
 out:
+	htc_wake_debug = 0;  //HTC_CSP
 	return ret;
 }
 
@@ -1855,12 +1897,14 @@ static void wl1271_recovery_work(struct work_struct *work)
 	}
 
 	/* reboot the chipset */
+    printk("wl1271_recovery_work 1\n");
 	while (!list_empty(&wl->wlvif_list)) {
 		wlvif = list_first_entry(&wl->wlvif_list,
 				       struct wl12xx_vif, list);
 		vif = wl12xx_wlvif_to_vif(wlvif);
 		__wl1271_op_remove_interface(wl, vif, false);
 	}
+    printk("wl1271_recovery_work 2\n");
 	wl1271_op_stop_locked(wl);
 
 	ieee80211_restart_hw(wl->hw);
@@ -2474,11 +2518,18 @@ err:
 	return ret;
 }
 
+//HTC_WIFI_START
+struct cfg80211_wowlan *__local_wow;
+//HTC_WIFI_END
 int wl1271_configure_wowlan(struct wl1271 *wl, struct cfg80211_wowlan *wow)
 {
 	int i, ret;
 
-	wl1271_debug(DEBUG_MAC80211, "configure_wowlan: wow %p", wow);
+//HTC_WIFI_START
+	__local_wow = wow;
+//HTC_WIFI_END
+
+    wl1271_debug(DEBUG_MAC80211, "configure_wowlan: wow %p", wow);
 
 	if (!wow || wow->any || !wow->n_patterns) {
 		ret = wl1271_rx_data_filtering_enable(wl, 0, FILTER_SIGNAL);
@@ -2518,6 +2569,17 @@ int wl1271_configure_wowlan(struct wl1271 *wl, struct cfg80211_wowlan *wow)
 
 		p = &wow->patterns[i];
 
+		/* HTC_WIFI_START, disable broadcast in suspend mode
+		 * wow_enabled is set trued in suspend mode
+		 */
+		if (wl->wow_enabled && p->pattern && p->pattern_len) {
+			if (p->pattern[0] & 0x1) { /* multicast or broadcast */
+				pr_info("ignore non-unicast rule: pat[0] 0x%02x\n", p->pattern[0]);
+				continue;
+			}
+		}
+		//HTC_WIFI_END
+
 		ret = wl1271_convert_wowlan_pattern_to_rx_filter(p, &filter);
 		if (ret) {
 			wl1271_warning("convert_wowlan_pattern_to_rx_filter "
@@ -2545,6 +2607,29 @@ out:
 	return ret;
 }
 
+//HTC_WIFI_START
+//force power save to ensure we write to the ELP reg
+static int wl12xx_force_auto_psm(struct wl1271 *wl, struct wl12xx_vif *wlvif)
+{
+    int ret;
+    u16 timeout = wl->conf.conn.dynamic_ps_timeout;
+
+    ret = wl1271_cmd_ps_mode(wl, wlvif, STATION_AUTO_PS_MODE, timeout);
+    if (ret < 0)
+        return ret;
+
+    set_bit(WLVIF_FLAG_IN_PS, &wlvif->flags);
+
+    /* enable beacon early termination. Not relevant for 5GHz */
+    if (wlvif->band == IEEE80211_BAND_2GHZ) {
+        ret = wl1271_acx_bet_enable(wl, wlvif, true);
+        if (ret < 0)
+            return ret;
+    }
+	return ret; //liushoubin 20120222 compile error
+}
+//HTC_WIFI_END
+
 static int wl1271_configure_suspend_sta(struct wl1271 *wl,
 					struct wl12xx_vif *wlvif,
 					struct cfg80211_wowlan *wow)
@@ -2558,12 +2643,23 @@ static int wl1271_configure_suspend_sta(struct wl1271 *wl,
 	if (ret < 0)
 		goto out;
 
+//HTC_WIFI_START
+	/* re-configure again */
+	ret = wl1271_configure_wowlan(wl, wow);
+//HTC_WIFI_END
+
 	ret = wl1271_acx_wake_up_conditions(wl, wlvif,
 				    wl->conf.conn.suspend_wake_up_event,
 				    wl->conf.conn.suspend_listen_interval);
 
 	if (ret < 0)
 		wl1271_error("suspend: set wake up conditions failed: %d", ret);
+
+//HTC_WIFI_START
+//force power save to ensure we write to the ELP reg
+    if (!test_bit(WL1271_FLAG_IN_ELP, &wl->flags))
+        ret = wl12xx_force_auto_psm(wl, wlvif); //force power save to ensure we write to the ELP reg
+//HTC_WIFI_END
 
 	wl1271_ps_elp_sleep(wl);
 
@@ -2610,6 +2706,16 @@ static void wl1271_configure_resume(struct wl1271 *wl,
 	bool is_ap = wlvif->bss_type == BSS_TYPE_AP_BSS;
 	bool is_sta = wlvif->bss_type == BSS_TYPE_STA_BSS;
 
+	//HTC_WIFI_START
+	/* update wow_enabled before return. */
+	wl->wow_enabled = false;
+
+	if (test_bit(WL1271_FLAG_INTENDED_FW_RECOVERY, &wl->flags) || wl->state == WLCORE_STATE_OFF) {
+		wl1271_warning("resmue: in FW_RECOVERY or STATE_OFF");
+		return;
+	}
+	//HTC_WIFI_END
+
 	if ((!is_ap) && (!is_sta))
 		return;
 
@@ -2618,6 +2724,12 @@ static void wl1271_configure_resume(struct wl1271 *wl,
 		return;
 
 	if (is_sta) {
+
+		//HTC_WIFI_START
+		/* re-conifugre again */
+		ret = wl1271_configure_wowlan(wl, __local_wow);
+		//HTC_WIFI_END
+
 		ret = wl1271_acx_wake_up_conditions(wl, wlvif,
 				    wl->conf.conn.wake_up_event,
 				    wl->conf.conn.listen_interval);
@@ -2765,14 +2877,21 @@ static int wl1271_op_start(struct ieee80211_hw *hw)
 	 * is added. That is where we will initialize the hardware.
 	 */
 
+/* HTC_WIFI_START */
+    wl1271_info("set stop_wifi_driver_flag = 0");
+    stop_wifi_driver_flag = 0;
+/* HTC_WIFI_END */
 
 	/*
 	 * store wl in the global wl_list, used to find wl
 	 * in the wl1271_dev_notify callback
 	 */
+    printk("wl1271_op_start mutex_lock 1\n");
 	mutex_lock(&wl_list_mutex);
-	list_add(&wl->list, &wl_list);
+    printk("wl1271_op_start mutex_lock 2\n");
+    list_add(&wl->list, &wl_list);
 	mutex_unlock(&wl_list_mutex);
+    printk("wl1271_op_start mutex_lock 3\n");
 	return 0;
 }
 
@@ -2803,9 +2922,12 @@ static void wl1271_op_stop_locked(struct wl1271 *wl)
 	wlcore_disable_interrupts_nosync(wl);
 	mutex_unlock(&wl->mutex);
 
+    printk("wl1271_op_stop_locked mutex_lock 1\n");
 	mutex_lock(&wl_list_mutex);
+    printk("wl1271_op_stop_locked mutex_lock 2\n");
 	list_del(&wl->list);
 	mutex_unlock(&wl_list_mutex);
+    printk("wl1271_op_stop_locked mutex_lock 3\n");
 
 	wlcore_synchronize_interrupts(wl);
 	cancel_delayed_work_sync(&wl->delayed_recovery);
@@ -2889,6 +3011,11 @@ static void wl1271_op_stop(struct ieee80211_hw *hw)
 	wl1271_op_stop_locked(wl);
 
 	mutex_unlock(&wl->mutex);
+
+/* HTC_WIFI_START */
+    wl1271_info("set stop_wifi_driver_flag = 1");
+    stop_wifi_driver_flag = 1;
+/* HTC_WIFI_END */
 }
 
 static int wl12xx_allocate_rate_policy(struct wl1271 *wl, u8 *idx)
@@ -5404,6 +5531,8 @@ void wl1271_free_sta(struct wl1271 *wl, struct wl12xx_vif *wlvif, u8 hlid)
 		return;
 
 	clear_bit(hlid, wlvif->ap.sta_hlid_map);
+	memset(wl->links[hlid].addr, 0, ETH_ALEN);
+	wl->links[hlid].ba_bitmap = 0;
 	__clear_bit(hlid, &wl->ap_ps_map);
 	__clear_bit(hlid, (unsigned long *)&wl->ap_fw_ps_map);
 	wl12xx_free_link(wl, wlvif, &hlid);
@@ -5746,6 +5875,7 @@ static void wl12xx_op_channel_switch(struct ieee80211_hw *hw,
 	 */
 	if (wl->fw_type == WL12XX_FW_TYPE_MULTI) {
 		wl1271_debug(DEBUG_MAC80211, "mac80211 dropping ch switch");
+		wl1271_info("mac80211 dropping ch switch");
 		wl12xx_for_each_wlvif_sta(wl, wlvif) {
 			struct ieee80211_vif *vif = wl12xx_wlvif_to_vif(wlvif);
 			ieee80211_chswitch_done(vif, false);
@@ -6426,7 +6556,15 @@ static void wl12xx_derive_mac_addresses(struct wl1271 *wl,
 					u32 oui, u32 nic, int n)
 {
 	int i;
-	u32 cur_nic;
+    /*
+     * HTC_WIFI_START
+     * We modify the MAC address as below,
+     * For p2p0 interface, we will set LAA bit and toggle one specific bit.
+     * For third interface (wlan1 or wifi direct), we will set LAA bit only.
+     * HTC_WIFI_END
+     */
+    u32 cur_oui;
+    u32 cur_nic;
 
 	wl1271_debug(DEBUG_PROBE, "base address: oui %06x nic %06x, n %d",
 		     oui, nic, n);
@@ -6434,11 +6572,21 @@ static void wl12xx_derive_mac_addresses(struct wl1271 *wl,
 	if (nic + n - 1 > 0xffffff)
 		wl1271_warning("NIC part of the MAC address wraps around!");
 
-	cur_nic = nic;
-	for (i = 0; i < 2; i++) {
-		wl->addresses[i].addr[0] = (u8)(oui >> 16);
-		wl->addresses[i].addr[1] = (u8)(oui >> 8);
-		wl->addresses[i].addr[2] = (u8) oui;
+	for (i = 0; i < n; i++) {
+        cur_oui = oui;
+        cur_nic = nic;
+		if (i == 1) {
+			/* turn on the "LAA bit" & toggle specific bit in the second mac address (p2p0) */
+			cur_oui |= BIT(17);
+            cur_nic ^= BIT(15);
+        } else if (i == 2) {
+			/* turn on LAA bit only in the third mac address (wlan1 or wifi direct interface) */
+			cur_oui |= BIT(17);
+		}
+
+		wl->addresses[i].addr[0] = (u8)(cur_oui >> 16);
+		wl->addresses[i].addr[1] = (u8)(cur_oui >> 8);
+		wl->addresses[i].addr[2] = (u8) cur_oui;
 		wl->addresses[i].addr[3] = (u8)(cur_nic >> 16);
 		wl->addresses[i].addr[4] = (u8)(cur_nic >> 8);
 		wl->addresses[i].addr[5] = (u8) cur_nic;
@@ -7091,6 +7239,11 @@ static int __devinit wl12xx_probe(struct platform_device *pdev)
 		ret = PTR_ERR(hw);
 		goto out;
 	}
+//HTC_WIFI_START
+//Vito Smart Qos feature 0206
+	priv_hw = hw;
+	//printk("SQOS priv_hw = %p\n",priv_hw);
+//HTC_WIFI_END
 
 	wl = hw->priv;
 	wl->irq = platform_get_irq(pdev, 0);
@@ -7228,7 +7381,112 @@ static struct platform_driver wl12xx_driver = {
 		.owner	= THIS_MODULE,
 	}
 };
+//HTC_WIFI_START
+//Vito Smart Qos feature 0128
+////  SQOS start ////
+static const int index_to_phy_rate[] = {
+	/* MCS rates are used only with 11n */
+       145,                            /* CONF_HW_RXTX_RATE_MCS7_SGI */
+       130,                            /* CONF_HW_RXTX_RATE_MCS7 */
+       117,                            /* CONF_HW_RXTX_RATE_MCS6 */
+       104,                            /* CONF_HW_RXTX_RATE_MCS5 */
+       78,                            /* CONF_HW_RXTX_RATE_MCS4 */
+       52,                            /* CONF_HW_RXTX_RATE_MCS3 */
+       39,                            /* CONF_HW_RXTX_RATE_MCS2 */
+       26,                            /* CONF_HW_RXTX_RATE_MCS1 */
+       13,                            /* CONF_HW_RXTX_RATE_MCS0 */
 
+
+	108,                            /* CONF_HW_RXTX_RATE_54   */
+	96,                            /* CONF_HW_RXTX_RATE_48   */
+	72,                             /* CONF_HW_RXTX_RATE_36   */
+	48,                             /* CONF_HW_RXTX_RATE_24   */
+
+	/* TI-specific rate */
+	44,                              /* CONF_HW_RXTX_RATE_22   */
+
+	36,                             /* CONF_HW_RXTX_RATE_18   */
+	24,                             /* CONF_HW_RXTX_RATE_12   */
+	22,                             /* CONF_HW_RXTX_RATE_11   */
+	18,                             /* CONF_HW_RXTX_RATE_9    */
+	12,                             /* CONF_HW_RXTX_RATE_6    */
+	11,                             /* CONF_HW_RXTX_RATE_5_5  */
+	4,                             /* CONF_HW_RXTX_RATE_2    */
+	2                              /* CONF_HW_RXTX_RATE_1    */
+};
+/*
+ * function : sqos_phy_rate_get
+ * purpose  : for sqos get phy_rate
+ */
+int sqos_phy_rate_get(int index)
+{
+	int ret;
+	ret = index_to_phy_rate[index];
+	if (ret > 0)
+		cur_phy_rate = ret;
+	else
+		printk("SQOS phy_rate < 0 \n");
+
+	return 0;
+}
+/*
+int SQOS_channel_bandwidth_from_wifi_driver(sqos_wifi_info_t *wifi_info)
+{
+	wifi_info->chbandw = DEFAULT_CHANNEL_BANDWIDTH;
+	wifi_info->mode = 0;
+	wifi_info->product = 0;
+
+	return 0;
+}
+*/
+int SQOS_channel_bandwidth_from_wifi_driver(void)
+{
+        return DEFAULT_CHANNEL_BANDWIDTH;
+}
+
+
+int SQOS_data_from_wifi_driver(sqos_wifi_data_t *wifi_data)
+{
+	int tx_drop = 0;
+	struct ieee80211_hw *sqos_priv_hw = priv_hw;
+	struct wl1271 *wl = priv_hw->priv;
+
+	if((wl == NULL) || (sqos_priv_hw == NULL))
+	{
+		printk("wl = %p , priv_hw = %p",wl,sqos_priv_hw);
+		return -1;
+	}
+	/*1 phyrate*/
+	wifi_data->phy_rate = cur_phy_rate;
+	/*2 txfail txtran */
+//	wifi_data->txfail = sqos_tx_fail_get();
+	tx_drop = sqos_tx_fail_get();
+	wifi_data->txfail = tx_drop - pre_drop ;
+	pre_drop = tx_drop;
+
+	/*3 qlen */
+	wifi_data->qlen = wl1271_tx_total_queue_count(wl);
+
+	/*4 rssi */
+	if(cur_rssi < 256)
+		wifi_data->rssi = 256 - cur_rssi ;
+	else if (cur_rssi == 256)			// disconnect
+		wifi_data->rssi = cur_rssi;
+	/*5 status */
+	wifi_data->status = 0;
+
+	wl1271_debug(DEBUG_TX, "get phy_rate= %d ,tx_drop= %d ,qlen= %d .\n",wifi_data->phy_rate,wifi_data->txfail,wifi_data->qlen);
+//	printk("SQos rate= %d ,drop= %d ,qlen= %d rssi = %d.\n",wifi_data->phy_rate,
+//								wifi_data->txfail ,wifi_data->qlen,(256 - wifi_data->rssi));
+
+
+
+	return 0;
+}
+EXPORT_SYMBOL(SQOS_channel_bandwidth_from_wifi_driver);
+EXPORT_SYMBOL(SQOS_data_from_wifi_driver);
+////  SQOS end ////
+//HTC_WIFI_END
 static int __init wl12xx_init(void)
 {
 	wl1271_info("driver version: %s", wl12xx_git_head);
